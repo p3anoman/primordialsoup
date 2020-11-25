@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  asts: asts
  newspeakParser: ns3Parser
@@ -23,6 +23,7 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private Map = platform collections Map.
 	private List = platform collections List.
 	private Set = platform collections Set.
+    private StringBuilder = platform kernel StringBuilder.
 	private ASTTool = asts ASTTool.
 	private AST = asts AST.
 	private BlockAST = asts BlockAST.
@@ -2223,38 +2224,6 @@ buildIncrementalScopeFor: mm <MixinMirror> = (
 		ce enclosingClass: thisClass.
 		currentScope at: c name put: ce].
 )
-checkForDuplicateNames: node <ClassDeclarationAST> = (
-	| namesWithDuplicates names duplicateNames |
-
-	namesWithDuplicates:: List new.
-	node instanceSide methods do: [:each | namesWithDuplicates add: each selector].
-
-	node header slots do: [:each |
-		namesWithDuplicates add: each name.
-		each isMutable ifTrue: [namesWithDuplicates add: each name, ':']].
-
-	namesWithDuplicates
-		addAll: (node instanceSide nestedClasses collect: [:each | each name]).
-
-	names:: Set new.
-	duplicateNames:: Set new.
-	namesWithDuplicates do: [:each | | present |
-		present:: true.
-		names include: each ifNew: [present:: false].
-		present ifTrue: [duplicateNames add: each]].
-
-	duplicateNames isEmpty ifFalse: [ | message |
-		message:: String streamContents: [:s |
-			s
-				nextPutAll: 'Class ';
-				nextPutAll: node name;
-				nextPutAll: '" has multiple definitions for '.
-			duplicateNames
-				do: [:each | s nextPutAll: each asString]
-				separatedBy: [ s nextPutAll: ','].
-			s nextPutAll: '.'.].
-		assert: [false] message: message].
-)
 private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
 	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
 
@@ -2793,6 +2762,38 @@ private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree 
 
 	^intermediateTS
 )
+checkForDuplicateNames: node <ClassDeclarationAST> = (
+	| namesWithDuplicates names duplicateNames |
+
+	namesWithDuplicates:: List new.
+	node instanceSide methods do: [:each | namesWithDuplicates add: each selector].
+
+	node header slots do: [:each |
+		namesWithDuplicates add: each name.
+		each isMutable ifTrue: [namesWithDuplicates add: each name, ':']].
+
+	namesWithDuplicates
+		addAll: (node instanceSide nestedClasses collect: [:each | each name]).
+
+	names:: Set new.
+	duplicateNames:: Set new.
+	namesWithDuplicates do: [:each | | present |
+		present:: true.
+		names include: each ifNew: [present:: false].
+		present ifTrue: [duplicateNames add: each]].
+
+	duplicateNames isEmpty ifFalse: [ | message |
+		message:: (StringBuilder new: 50 + node name size)
+				add: 'Class ';
+				add: node name;
+				add: ' has multiple definitions for ';
+                yourself.
+		duplicateNames
+				do: [:each | message add: each asString]
+				separatedBy: [ message add: ','].
+		message add: '.'.
+		assert: [false] message: message asString].
+)
 ) : (
 )
 class ContextMappedEntry name: nom mapper: mapper = SymbolTableEntry forAST: nil atDepth: nil (|
@@ -2865,4 +2866,3 @@ namer = (
 )
 ) : (
 )
-
