@@ -51,17 +51,29 @@ assertionFailedClassSource ^<String> = (
 )
 assertionMethodsSource ^<String> = (
 	^'assert: aBlockOrValue = (
+<<<<<<< HEAD
 		aBlockOrValue isClosure
+=======
+		aBlockOrValue isKindOfClosure
+>>>>>>> parent of a4b913c... Integrate with latest version from master primordialsoup.
 			ifTrue: [aBlockOrValue value ifFalse: [AssertionFailed new signal: ''Assertion failed'']]
 			ifFalse: [aBlockOrValue ifFalse: [AssertionFailed new signal: ''Assertion failed'']]
 	)
 	assert: aBlockOrValue description: descriptionText = (
+<<<<<<< HEAD
 		aBlockOrValue isClosure
+=======
+		aBlockOrValue isKindOfClosure
+>>>>>>> parent of a4b913c... Integrate with latest version from master primordialsoup.
 			ifTrue: [aBlockOrValue value ifFalse: [AssertionFailed new signal: ''Assertion failed: '', descriptionText]]
 			ifFalse: [aBlockOrValue ifFalse: [AssertionFailed new signal: ''Assertion failed: '', descriptionText]]
 	)
 	assert: aBlockOrValue descriptionBlock: descriptionBlock = (
+<<<<<<< HEAD
 		aBlockOrValue isClosure
+=======
+		aBlockOrValue isKindOfClosure
+>>>>>>> parent of a4b913c... Integrate with latest version from master primordialsoup.
 			ifTrue: [aBlockOrValue value ifFalse: [AssertionFailed new signal: descriptionBlock value]]
 			ifFalse: [aBlockOrValue ifFalse: [AssertionFailed new signal: descriptionBlock value]]
 	)
@@ -122,4 +134,8 @@ public test: sampleClassSource <String> with: testClassSource <String> ifFailure
 	(klass platform: platform) runIfFailure: failureBlock ifError: errorBlock
 )
 ) : (
+<<<<<<< HEAD
 )
+=======
+)
+>>>>>>> parent of a4b913c... Integrate with latest version from master primordialsoup.
