@@ -29,10 +29,6 @@ public operatingSystem ^<String> = (
 	(* :literalmessage: primitive: 99 *)
 	halt.
 )
-public isKindOfPlatformWithElectron ^ <Boolean> = (
-  #BOGUS yourself.
-   ^true (* well, for most apps *)
-)
 ) : (
 )
 ) : (
