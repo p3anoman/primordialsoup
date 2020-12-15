@@ -261,15 +261,6 @@ public threadForBrokenActivation: a <Activation> reason: e <Exception> ^ <Thread
 )
 public class AtomicInstallWrapper = (
 ) (
-public install: classDecls <List[IntermediateClassDeclaration]> into: ns <Map[Symbol, Object]> ^ <List[MixinMirror]> = (
-  classDecls do: [:ir <IntermediateClassDeclaration> |  
-	| entry = ns at: ir simpleName ifAbsent: []. |
-      nil = entry ifFalse: [
-	  entry isKindOfClass ifTrue: [setMixinsOf: ir from: (mixinOf: entry).]
-	  ] 
-  ].
-  ^(AtomicInstaller new install: classDecls) collect: [:im <InstanceMixin> | MixinMirror reflecting: im]
-)
 setMixinsOf: ir <IntermediateClassDeclaration> from: mxn <InstanceMixin> = (
    | mixinMap = Map new. |
    ir existingMixin: mxn.
@@ -280,6 +271,22 @@ setMixinsOf: ir <IntermediateClassDeclaration> from: mxn <InstanceMixin> = (
 		  setMixinsOf: ncir from: entry
 		]
 	].
+)
+installIRs: classDecls <List[IntermediateClassDeclaration]> into: ns <Map[Symbol, Object]> ^ <List[MixinMirror]> = (
+  classDecls do: [:ir <IntermediateClassDeclaration> |  
+	| entry = ns at: ir simpleName ifAbsent: []. |
+      nil = entry ifFalse: [
+	  entry isKindOfClass ifTrue: [setMixinsOf: ir from: (mixinOf: entry).]
+	  ] 
+  ].
+  ^(AtomicInstaller new install: classDecls) collect: [:im <InstanceMixin> | MixinMirror reflecting: im]
+)
+public install: builders <List[ClassDeclarationBuilder]> into: ns = (
+  | irs <List[IntermediateClassDeclaration]> =  
+  (* Problem: Atomic install takes list of IRs. IR is not exposed by builder. Extract by brute force - mirrors are omnipotent! *)
+     builders collect: [:b <ClassDeclarationBuilder> | ((ObjectMirror reflecting: b) getSlot: #intermediate) reflectee].
+  |
+  ^installIRs: irs into: ns
 )
 ) : (
 )
