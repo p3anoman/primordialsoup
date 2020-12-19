@@ -38,24 +38,12 @@
             text = Array.prototype.slice.call(arguments).join(" ");
           }
           console.log(text);
-
-          var pre = document.createElement("pre");
-          pre.textContent = text;
-          pre.style.color = "black";
-          document.body.appendChild(pre);
-          window.scrollTo(0, document.body.scrollHeight);
         },
         printErr: function(text) {
           if (arguments.length > 1) {
             text = Array.prototype.slice.call(arguments).join(" ");
           }
           console.error(text);
-
-          var pre = document.createElement("pre");
-          pre.textContent = text;
-          pre.style.color = "red";
-          document.body.appendChild(pre);
-          window.scrollTo(0, document.body.scrollHeight);
         },
         setStatus: function(text) {
           console.log(text);
