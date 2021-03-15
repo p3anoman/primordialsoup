@@ -945,7 +945,14 @@ public superclass ^<ClassMirror> = (
 	nil = s ifTrue: [^nil].
 	^ClassMirror reflecting: s
 )
+public allInstances ^ <Array> = (
+	^class allInstancesOf: reflectee
+)
 ) : (
+public allInstancesOf: b <Behavior> ^ <Array> = (
+	(* :literalmessage: primitive: 96 *)
+	halt.
+)
 )
 private class LocalSlotMirror name: n value: v = (
 |
