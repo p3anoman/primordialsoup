@@ -9,23 +9,6 @@ class JSForPrimordialSoup usingPlatform: platform = (
 	|
 ) (
 class Alien withIndex: i = (
-(* Aliens are a capability-based API for a foreign function interface (FFI). In Psoup on WASM, they allow Newspeak code to invoke JavaScript code and vice versa.
-
-An Alien is a Newspeak proxy for a JavaScript object. Upon receiving a message, an Alien expatriates the arguments, sends the message to the target JavaScript object, and alienates the result.
-
-An Expat is a JavaScript proxy for a Newspeak object. Upon receiving a message, an Expat alienates the arguments, sends the message to the target Newspeak object, and expatriates the result. Currently, only closures are expatriated, and only if they return null, booleans, numbers or strings.
-
-The Javascript values null, true and false are represented by predefined aliens that map them to the corresponding Newspeak objects nil, true and false.
-Javascript numbers and Newspeak numbers are mapped back and forth automatically by the system; likewise Javascript and Newpeak strings.
-
-Alien mappings:
-alien sort: a ignored: b ignored: c -> alien.sort(a, b, c)
-alien new: a ignored: b ignored: c  -> new alien(a, b, c)
-alien at: 'a' -> alien.a
-alien at: 'a' put: b -> alien.a = b
-
-Currently,  Aliens are never garbage collected, which can be a source of significant meory leakage. 
-*)
 	|
 	public index <Integer> = i.
 	|
@@ -177,6 +160,10 @@ public isKindOfImage ^ <Boolean> = (
   ^'IMG' = (at: 'tagName')
 )
 ) : (
+)
+public alienTableSize = (
+	(* :literalmessage: primitive: 158 *)
+	halt
 )
 ) : (
 )
