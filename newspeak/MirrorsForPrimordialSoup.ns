@@ -2140,6 +2140,39 @@ public terminate ^<ThreadMirror> = (
 )
 ) : (
 )
+public class ClosureMirror  reflecting: c <Closure> = (
+    |
+    public reflectee <Closure> = c.
+    definingActivation <Activation> = definingActivationOf: c.
+    |
+    reflectees at: self put: c.
+) (
+public = other ^<Boolean> = (
+	(is: reflectee identicalTo: other reflectee) ifFalse: [^false].
+	^other isKindOfClosureMirror
+)
+public hash ^<Integer> = (
+	^(identityHashOf: reflectee) hash bitXor: class hash
+)
+public isDead ^ <Boolean> = (
+  ^definingActivation isDead
+)
+public isKindOfClosureMirror ^<Boolean> = (
+	^true
+)
+public source ^<String> = (
+ (* Crdue approximation. Need to find how to narrow it to the actual closure source *)
+	^(definingActivationOf: reflectee) method source
+)
+public definingMethod ^ <MethodMirror>  = (
+ (* can the defining activation be nil? *)
+  ^MethodMirror reflecting: (definingActivationOf: reflectee) method
+)
+public receiver ^ <ObjectMirror> = (
+  ^ObjectMirror reflecting: definingActivation receiver
+)
+) : (
+)
 private allInstancesOf: cls = (
 	(* :literalmessage: primitive: 96 *)
 	halt.
