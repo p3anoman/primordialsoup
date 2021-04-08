@@ -24,10 +24,6 @@ private aboutToReturn: result through: firstUnwindActivation = (
 	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
 	^home return: result
 )
-public bci = (
-	(* :literalmessage: primitive: 57 *)
-	halt.
-)
 public bci: value = (
 	(* :literalmessage: primitive: 58 *)
 	halt.
@@ -35,10 +31,6 @@ public bci: value = (
 private cannotReturn: result = (
 	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
 	^(CannotReturn result: result) signal
-)
-public closure = (
-	(* :literalmessage: primitive: 61 *)
-	halt.
 )
 public closure: value = (
 	(* :literalmessage: primitive: 62 *)
@@ -78,10 +70,6 @@ public isDead ^<Boolean> = (
 )
 public isUnwindContext ^<Boolean> = (
 	^113 = method primitive
-)
-public method = (
-	(* :literalmessage: primitive: 59 *)
-	halt.
 )
 public method: value = (
 	(* :literalmessage: primitive: 60 *)
@@ -125,10 +113,6 @@ public push: value = (
 	self size: newDepth.
 	^self tempAt: newDepth put: value
 )
-public receiver = (
-	(* :literalmessage: primitive: 63 *)
-	halt.
-)
 public receiver: value = (
 	(* :literalmessage: primitive: 64 *)
 	halt.
@@ -151,10 +135,6 @@ public resume: value = (
 public return: value = (
 	nil = sender ifTrue: [^self cannotReturn: value].
 	^sender resume: value
-)
-public sender = (
-	(* :literalmessage: primitive: 55 *)
-	halt.
 )
 public sender: value = (
 	(* :literalmessage: primitive: 56 *)
@@ -197,6 +177,26 @@ public terminateTo: previousContext = (
 )
 public top = (
 	^self tempAt: self size
+)
+public closure ^ <Closure | nil> = (
+	(* :literalmessage: primitive: 61 *)
+	halt.
+)
+public bci ^ <SmallInteger | nil> = (
+	(* :literalmessage: primitive: 57 *)
+	halt.
+)
+public method ^ <Method | nil> = (
+	(* :literalmessage: primitive: 59 *)
+	halt.
+)
+public receiver ^ <Object> = (
+	(* :literalmessage: primitive: 63 *)
+	halt.
+)
+public sender ^ <Activation | nil> = (
+	(* :literalmessage: primitive: 55 *)
+	halt.
 )
 ) : (
 public new ^<Activation> = (
