@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class Kernel wrapping: k = (|
 private internalKernel = k.
 |) (
@@ -37,6 +37,9 @@ public WeakMap = (
 public garbageCollect = (
 	(* for testing *)
 	internalKernel garbageCollect
+)
+public Proxy = (
+  ^internalKernel Proxy
 )
 ) : (
 )
