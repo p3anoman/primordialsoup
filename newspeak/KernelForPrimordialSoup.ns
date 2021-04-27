@@ -1343,8 +1343,8 @@ public class LargeInteger _cannotInstantiate = Integer () (
 public class MediumInteger _cannotInstantiate = Integer () (
 ) : (
 )
-public class Message selector: s arguments: a = (|
-public selector <Symbol> = s.
+public class Message selector: s <String> arguments: a = (|
+public selector <Symbol> = s asSymbol.
 public arguments <Array[Object]> = a.
 |) (
 public sendEventualTo: receiver = (
