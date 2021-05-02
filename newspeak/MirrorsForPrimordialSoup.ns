@@ -1309,6 +1309,10 @@ public setSlot: name to: value = (
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	slotOf: reflectee at: index put: value.
 )
+public perform: selector <String> with: args <Array[Object]> ifFail: fblk <[:Exception]> ^ <ObjectMirror> = (
+	| msg <Message> = Message selector: selector arguments: args.  |
+	^[msg sendTo: reflectee] on: Error do: fblk
+)
 ) : (
 )
 private class Simulator = (|
