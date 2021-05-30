@@ -16,6 +16,8 @@ private Closure = ik Closure.
 private Message = ik Message.
 private String = ik String.
 
+public metadataParsing = ns MetadataParsing usingPlatform: platform.
+
 private reflectees = WeakMap new.
 
 private cachedPlatform = platform.
@@ -866,6 +868,27 @@ instanceInitializer ^ <_Method> = (
 	].
   shouldNotHappen.
 )
+public metadata ^ <Map[String, String]> = (
+  ^parseMetadata metadata
+)
+parseMetadata ^ <MetadataParser> = (
+  |  ast <ClassHeaderAST> = (parsing Parser for: source) parseClassHeader. |
+ast constructor end > 1 
+  ifTrue: [  
+    |     (* Scan forward from end of non-default constructor *)
+    src <String> = source copyFrom: ast constructor end to: source size. 
+    |
+    ^metadataParsing MetadataParser onSource: src
+    ]
+  ifFalse: [ (*Find #= and scan back from there*)
+       |
+       src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
+       metadataParser <MetadataParser> = metadataParsing MetadataParser onSource: src.
+       |
+       metadataParser gatherMetadataBackwards.
+       ^metadataParser
+       ].
+)
 ) : (
 )
 public class ClassMirror reflecting: behavior = (|
@@ -1009,6 +1032,19 @@ public selectors ^ <List[Symbol]> = (
 public source ^<String> = (
 	(* :todo: Should this be async? *)
 	^method source
+)
+public metadata ^ <Map[String, String]> = (
+  ^parseMetadata metadata
+)
+parseMetadata ^ <MetadataParser> = (
+  | 
+  ast <MessagePatternAST> = (parsing Parser for: source) parseMessagePattern. 
+  start = ast parameters size > 0 
+     ifTrue: [ast parameters last end]
+     ifFalse: [source start + name size ].
+  src <String> = source copyFrom: start to: source size.
+  |
+  ^metadataParsing MetadataParser onSource: src
 )
 ) : (
 )
