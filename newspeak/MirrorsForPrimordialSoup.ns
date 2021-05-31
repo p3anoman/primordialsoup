@@ -872,7 +872,7 @@ public metadata ^ <Map[String, String]> = (
   ^parseMetadata metadata
 )
 parseMetadata ^ <MetadataParser> = (
-  |  ast <ClassHeaderAST> = (parsing Parser for: source) parseClassHeader. |
+  |  ast <ClassHeaderAST> = (parsing CommonParser new parseClassDeclaration: source) header. |
 ast constructor end > 1 
   ifTrue: [  
     |     (* Scan forward from end of non-default constructor *)
@@ -1038,10 +1038,10 @@ public metadata ^ <Map[String, String]> = (
 )
 parseMetadata ^ <MetadataParser> = (
   | 
-  ast <MessagePatternAST> = (parsing Parser for: source) parseMessagePattern. 
+  ast <MessagePatternAST> = (parsing CommonParser new  parseMethodDeclaration: source) pattern. 
   start = ast parameters size > 0 
      ifTrue: [ast parameters last end]
-     ifFalse: [source start + name size ].
+     ifFalse: [ast start + name size ].
   src <String> = source copyFrom: start to: source size.
   |
   ^metadataParsing MetadataParser onSource: src
