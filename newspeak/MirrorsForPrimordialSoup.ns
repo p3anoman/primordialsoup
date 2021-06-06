@@ -872,22 +872,12 @@ public metadata ^ <Map[String, String]> = (
   ^parseMetadata metadata
 )
 parseMetadata ^ <MetadataParser> = (
-(*  |  ast <ClassHeaderAST> = parsing CommonParser new parseClassHeader: source. |
-ast constructor end > 1 
-  ifTrue: [  
-    |     (* Scan forward from end of non-default constructor *)
-    src <String> = source copyFrom: ast constructor end + 1 to: source size. 
     |
-    ^metadataParsing MetadataParser onSource: src
-    ]
-  ifFalse: [*) (*Find #= and scan back from there*)
-       |
-       src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
-       metadataParser <MetadataParser> = metadataParsing MetadataParser onSource: src.
-       |
-       metadataParser gatherMetadataBackwards.
-       ^metadataParser
-       (*].*)
+    src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
+    metadataParser <MetadataParser> = metadataParsing MetadataParser onSource: src.
+    |
+    metadataParser gatherMetadataBackwards.
+    ^metadataParser
 )
 ) : (
 )
@@ -1037,14 +1027,12 @@ public metadata ^ <Map[String, String]> = (
   ^parseMetadata metadata
 )
 parseMetadata ^ <MetadataParser> = (
-  | 
-  ast <MessagePatternAST> = (parsing CommonParser new  parseMethodDeclaration: source) pattern. 
-  start = ast parameters size > 0 
-     ifTrue: [ast parameters last end + 1]
-     ifFalse: [ast start + name size ].
-  src <String> = source copyFrom: start to: source size.
-  |
-  ^metadataParsing MetadataParser onSource: src
+    |
+    src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
+    metadataParser <MetadataParser> = metadataParsing MetadataParser onSource: src.
+    |
+    metadataParser gatherMetadataBackwards.
+    ^metadataParser
 )
 ) : (
 )
