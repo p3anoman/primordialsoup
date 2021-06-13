@@ -1,6 +1,6 @@
 Newspeak3
-'NS2PrimordialSoup'
-class PrimordialFuel usingPlatform: p internalKernel: k = (|
+'Root'
+class PrimordialFuel usingPlatform: p internalKernel: k (* :exemplar: platform victoryFuel *) = (|
 private List = p collections List.
 private IdentityMap = k IdentityMap.
 

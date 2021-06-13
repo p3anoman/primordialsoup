@@ -1,6 +1,6 @@
 Newspeak3
 'Root'
-class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
+class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns (* :exemplar: platform mirrors *) = (|
 private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
