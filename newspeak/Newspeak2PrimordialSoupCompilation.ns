@@ -48,7 +48,7 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private IntermediateMethod = i IntermediateMethod.
 	private IntermediateMixin = i IntermediateMixin.
 	private IntermediateTransientSlot = i IntermediateTransientSlot.
-	protected parser <CommonParser> = ns3Parser CommonParser new.
+	public  parser <CommonParser> = ns3Parser CommonParser new.
 |) (
 public class Compiler = super Compiler (
 (* The compiler has three main entry points: compileClassSource:Within:, compileClassHeader: within: and compileMethodSource:within:. These compile an entire class declaration, a class header, and a method, respectively.
@@ -2793,6 +2793,9 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 				separatedBy: [ message add: ','].
 		message add: '.'.
 		assert: [false] message: message asString].
+)
+public parser = (
+  ^outer Newspeak2PrimordialSoupCompilation parser
 )
 ) : (
 )

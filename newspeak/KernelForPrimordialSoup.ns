@@ -24,10 +24,6 @@ private aboutToReturn: result through: firstUnwindActivation = (
 	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
 	^home return: result
 )
-public bci: value = (
-	(* :literalmessage: primitive: 58 *)
-	halt.
-)
 private cannotReturn: result = (
 	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
 	^(CannotReturn result: result) signal
@@ -196,6 +192,10 @@ public receiver ^ <Object> = (
 )
 public sender ^ <Activation | nil> = (
 	(* :literalmessage: primitive: 55 *)
+	halt.
+)
+public bci: value <SmallInteger> = (
+	(* :literalmessage: primitive: 58 *)
 	halt.
 )
 ) : (
@@ -1388,13 +1388,6 @@ public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
 public metadata <String>
 |) (
-public accessModifier ^<Symbol> = (
-	| ac = header >> 28. |
-	0 = ac ifTrue: [^#public].
-	1 = ac ifTrue: [^#protected].
-	2 = ac ifTrue: [^#private].
-	halt.
-)
 public isPrivate ^<Boolean> = (
 	^#private = accessModifier
 )
@@ -1423,6 +1416,13 @@ public source = (
 public source: s = (
 	(* Can be removed after next bootstrap compiler update. *)
 	metadata: s
+)
+public accessModifier ^<Symbol> = (
+	| ac <Integer> = header >> 28. |
+	0 = ac ifTrue: [^#public].
+	1 = ac ifTrue: [^#protected].
+	2 = ac ifTrue: [^#private].
+	halt.
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
@@ -2341,10 +2341,6 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		Method.
 	}
 )
-private classOf: object = (
-	(* :literalmessage: primitive: 85 *)
-	halt.
-)
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
 	halt.
@@ -2497,6 +2493,10 @@ private thisClassOf: metaclass = (
 )
 private thisClassOf: metaclass put: value = (
 	^self slotOf: metaclass at: 7 put: value
+)
+private classOf: object ^ <Class> = (
+	(* :literalmessage: primitive: 85 *)
+	halt.
 )
 ) : (
 )

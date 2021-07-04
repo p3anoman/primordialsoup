@@ -1287,8 +1287,13 @@ public evaluate: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<T
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	^evaluateSuspended: expression with: Map new
 )
-public evaluateSuspended: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<ThreadMirror> = (
-	| rawScope expressionMethod thread simulator |
+public evaluateSuspended: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^ <ThreadMirror> = (
+	|
+	rawScope <Map[Symbol, Object]>
+	expressionMethod <Method>
+	thread <Thread>
+	simulator <Simulator>
+	|
 	rawScope:: Map new.
 	scope keysAndValuesDo: [:key :value | rawScope at: key put: (reflectees at: value)].
 	expressionMethod:: compileExpression: expression with: rawScope.
@@ -1336,6 +1341,27 @@ public setSlot: name to: value = (
 public perform: selector <String> with: args <Array[Object]> ifFail: fblk <[:Exception]> ^ <ObjectMirror> = (
 	| msg <Message> = Message selector: selector arguments: args.  |
 	^[msg sendTo: reflectee] on: Error do: fblk
+)
+public performPublic: selector <String> with: args <Array[Object]> ^ <ObjectMirror> = (
+	| msg <Message> = Message selector: selector arguments: args.  |
+	^msg sendTo: reflectee
+)
+public sendSuspended: selector <String> with: args <List[Object]> ^ <ThreadMirror> = (
+	|
+	selectedMethod <Method> =
+	  reflectees at: (getClass methods detect: [:m <MethodMirror> |
+	    selector = m name 
+	  ]).
+	thread <Thread> = Thread new.
+	simulator <Simulator> = Simulator new.
+	|
+
+	simulator activate: selectedMethod receiver: reflectee arguments: args.
+
+	thread state: #suspended.
+	thread suspendedActivation: simulator activation.
+
+	^ThreadMirror reflecting: thread
 )
 ) : (
 )
