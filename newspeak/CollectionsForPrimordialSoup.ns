@@ -1,12 +1,12 @@
 Newspeak3
 'Root'
-class CollectionsForPrimordialSoup usingInternalKernel: ik = (
+class CollectionsForPrimordialSoup usingInternalKernel: ik (* :exemplar:  platform collections *)= (
 	|
 	public Collection = ik Collection.
 	private ArgumentError = ik ArgumentError.
 	|
 ) (
-public class List new: capacity <Integer> = Collection (
+public class List new: capacity <Integer> (* :exemplar: List new *) = Collection (
 (* An ordered collection of elements.
 
 Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in
@@ -24,9 +24,6 @@ public , other = (
 	self do: [:element | result addLast: element].
 	other do: [:element | result addLast: element].
 	^result
-)
-public add: element <E> ^<E> = (
-	^self addLast: element
 )
 public addAll: collection <Collection[E]> = (
 	collection do: [:element | self addLast: element].
@@ -159,6 +156,9 @@ public copyFrom: start <Integer> to: stop <Integer> ^ <List[E]> = (
 )
 public asArray ^<Array[E]> = (
 	^data copyFrom: 1 to: size_
+)
+public add: element <E> ^<E> (* :exemplar: add: 3 *) = (
+	^self addLast: element
 )
 ) : (
 public new ^<List[E]> = (
