@@ -402,10 +402,6 @@ public numArgs ^<Integer> = (
 	(* :literalmessage: primitive: 75 *)
 	halt.
 )
-private numArgsError: argsProvided = (
-	(* :bogus: *)
-	^(ArgumentError value: self) signal
-)
 public on: exceptionClass <E class> do: catch <[:E]> = (
 	(* :literalmessage: primitive: 116 *)
 	| handlerActive ::= true. |
@@ -458,6 +454,14 @@ public whileTrue = (
 )
 public whileTrue: action = (
 	halt.
+)
+private numArgsError: argsProvided = (
+	(* :bogus: *)
+    | msg  = 
+      'Closure has ', numArgs printString, ' parameters, but was called with ', argsProvided printString, ' arguments'.
+    |
+    msg out.
+	^(ArgumentError value: self) signal
 )
 ) : (
 )
