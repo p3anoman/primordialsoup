@@ -1,6 +1,6 @@
 Newspeak3
-'Newspeak'
-class KernelTests usingPlatform: p minitest: m = (|
+'Root'
+class KernelTests usingPlatform: p testFramework: m = (|
 private TestContext = m TestContext.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Exception = p kernel Exception.
@@ -2139,7 +2139,7 @@ public testFloatOperatorsInvalidArgument = (
 	should: [0 asFloat bitAnd: nil] signal: Error.
 	should: [0 asFloat bitOr: nil] signal: Error.
 	should: [0 asFloat bitXor: nil] signal: Error.
-    should: [1 asFloat ** nil] signal: Error.
+	should: [1 asFloat ** nil] signal: Error.
 )
 public testFloatRaisedTo = (
 	assert: (1 asFloat ** -1) equals: 1 asFloat.
