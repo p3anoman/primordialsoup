@@ -16,7 +16,7 @@ private Closure = ik Closure.
 private Message = ik Message.
 private String = ik String.
 
-public metadataParsing = ns MetadataParsing usingPlatform: platform.
+private MetadataParsing = ns MetadataParsing.
 
 private reflectees = WeakMap new.
 
@@ -26,6 +26,7 @@ private namespace = ns.
 private parsingX
 private intermediatesX
 private compilerX
+public metadataParsing = MetadataParsing usingPlatform: platform scannerClass: parsing Scanner.
 |) (
 public class ActivationMirror reflecting: activation thread: thr = (
 (* :bogus: This constructor should not be public. *)
@@ -871,9 +872,17 @@ instanceInitializer ^ <_Method> = (
 public metadata ^ <Map[String, String]> = (
   ^parseMetadata metadata
 )
+leftHandSide ^ <String> = (
+  | scanner = parsing Scanner for: source.|
+  (* get past class keyword & class name *)
+  scanner advanceToken; advanceToken; advanceToken.
+  [scanner tokenValue = '='] whileFalse: [scanner advanceToken].
+  
+  ^source copyFrom: 1 to: scanner tokenEnd - 1
+)
 parseMetadata ^ <MetadataParser> = (
     |
-    src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
+    src <String> = leftHandSide. 
     metadataParser <MetadataParser> = metadataParsing MetadataParser onSource: src.
     |
     metadataParser gatherMetadataBackwards.
