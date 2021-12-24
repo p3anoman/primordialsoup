@@ -1687,6 +1687,11 @@ public stop = (
 	startNanos:: nil.
 )
 ) : (
+public wait: millis = (
+	| stopwatch = new. |
+	stopwatch start.
+	[stopwatch elapsedMilliseconds < millis] whileTrue.
+)
 )
 public class String _cannotInstantiate = () (
 public , other <String> ^<String> = (
