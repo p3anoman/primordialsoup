@@ -2422,7 +2422,7 @@ private superclassOf: behavior = (
 private constructCompiler = (
 	| asts compilation |
 	asts:: namespace NewspeakASTs
-		usingLib: cachedPlatform.
+		usingPlatform: cachedPlatform.
 	parsingX:: namespace NewspeakPredictiveParsing
 		usingPlatform: cachedPlatform
 		asts: asts.

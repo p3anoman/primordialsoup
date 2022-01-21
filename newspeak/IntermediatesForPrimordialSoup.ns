@@ -226,7 +226,7 @@ public simpleName = (
 )
 ) : (
 )
-public class IntermediateTransientSlot = () (
+public class IntermediateLazySlot = () (
 ) : (
 )
 ) : (

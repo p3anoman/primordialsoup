@@ -1,6 +1,8 @@
 Newspeak3
 'Root'
-class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
+class NewspeakPredictiveParsing usingPlatform: platform asts: asts 
+(* :exemplar: NewspeakPredictiveParsing usingPlatform: platform asts: (NewspeakASTs usingPlatform: platform) *)
+= (
 (* A predictive LL(3) parser for Newspeak.
 
 Faster than the CombinatorialParsing-based parser, and can be modified without requiring a platform reset.
@@ -48,24 +50,50 @@ Todo:
 	private VariableAST = asts VariableAST.
 |) (
 public class CommonParser = () (
-public parseClassDeclaration: input <String> = (
-	^(Parser for: input) advanceToken parseClassDeclarationEnd
-)
-public parseCompilationUnit: input <String> = (
-	^(Parser for: input) advanceToken parseCompilationUnit
-)
-public parseExpression: input <String> = (
+public parseExpression: input <String> 
+(* :exemplar:  parseExpression: 'foo: 3 * 7 + 12 bar: ''abc'' baz: self x' *)
+= (
 	^(Parser for: input) advanceToken parseDoItExpressionEnd
 )
-public parseMethodDeclaration: input <String> = (
+public parseMethodDeclaration: input <String> 
+(* :exemplar1:  parseMethodDeclaration: 'public bam = (^foo: 3 * 7 + 12 bar: ''abc'' baz: self x)' *)
+(* :exemplar2:  parseMethodDeclaration: 'bam: x = (^foo: 3 * 7 + 12 bar: ''abc'' baz: x)' *)
+(* :exemplar3:  parseMethodDeclaration: 'private ++ z ^ <Integer> = (| v = 23. y <Boolean> = true. | ^self + z)' *)
+= (
 	^(Parser for: input) advanceToken parseMethodDeclarationEnd
 )
-public parseClassHeader: input <String> = (
+public parseClassDeclaration: input <String> 
+(* :exemplar:  parseClassDeclaration: '
+public class Exemplar usingPlatform: p = ( | List = p collections List. | ) (
+  public bam = (^foo: 3 * 7 + 12 bar: ''abc'' baz: self x)
+  bam: x = (^foo: 3 * 7 + 12 bar: ''abc'' baz: x)
+  private ++ z ^ <Integer> = (| v = 23. y <Boolean> = true. | ^self + z)
+  )' *)
+= (
+	^(Parser for: input) advanceToken parseClassDeclarationEnd
+)
+public parseClassHeader: input <String> 
+(* :exemplar: parseClassHeader: 'public class Exemplar usingPlatform: p = ( | List = p collections List. | )' *)
+= (
 	^(Parser for: input) advanceToken parseClassHeader
+)
+public parseCompilationUnit: input <String> 
+(* :exemplar:  parseCompilationUnit: '
+Newspeak
+''Root''
+public class Exemplar usingPlatform: p = ( | List = p collections List. | ) (
+  public bam = (^foo: 3 * 7 + 12 bar: ''abc'' baz: self x)
+  bam: x = (^foo: 3 * 7 + 12 bar: ''abc'' baz: x)
+  private ++ z ^ <Integer> = (| v = 23. y <Boolean> = true. | ^self + z)
+  )' *)
+= (
+	^(Parser for: input) advanceToken parseCompilationUnit
 )
 ) : (
 )
-class ParseError message: m position: p = Error (
+class ParseError message: m position: p 
+(* :exemplar: ParseError message: 'expected string'  position: 12 *)
+= Error (
 	|
 	message <String> = m.
 	position <Integer> = p.
@@ -1125,7 +1153,9 @@ public parseBlockType = (
 )
 ) : (
 )
-public class Scanner for: string = (
+public class Scanner for: string 
+(* :exemplar: Scanner for: 'foo = (| | self id + 2. ^a: true b: nil c: [:x | x <-: bar: #ddd] d: {1. false})' *)
+= (
 (* Turns Newspeak source into a stream of tokens.
 
 The current token is available via #tokenKind, #tokenValue, #tokenStart, and #tokenEnd.
@@ -1499,7 +1529,9 @@ public tokenEnd = (
 )
 ) : (
 )
-class Token value: v = (
+class Token value: v 
+(* :exemplar: Token value: 'A comment' *)
+= (
 (* Only used for class comments, where the AST expects a CombinatorialParsing-style Token. *)
 |
 public value = v.
