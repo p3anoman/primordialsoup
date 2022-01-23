@@ -332,7 +332,7 @@ public parseClassSide = (
 	advanceToken. (* Consume ) *)
 
 	^SideAST new
-		transientSlots: {};
+		lazySlots: {};
 		nestedClasses: {};
 		methods: methods
 )
@@ -430,27 +430,6 @@ public parseInitExpressions = (
 
 	 statements add: parseExpression.
 	 tokenKind = #'.' ifTrue: [advanceToken]] repeat.
-)
-public parseInstanceSide = (
-	(* sideDecl = lparen, classDecl star, category star, rparen. *)
-
-	| nestedClasses = List new. methods = List new. member |
-
-	(tokenKind = #'(') ifFalse: [expected: '('].
-	advanceToken.
-
-	[peekHasClassDeclaration] whileTrue:
-		[nestedClasses add: parseClassDeclaration].
-
-	[tokenKind = #')'] whileFalse:
-		[methods add: parseMethodDeclaration].
-
-	advanceToken. (* Consume ) *)
-
-	^SideAST new
-		transientSlots: {};
-		nestedClasses: nestedClasses;
-		methods: methods
 )
 public parseKeywordExpression = (
 	(* keywordExpression = binaryExpression, keywordMsg opt. *)
@@ -1150,6 +1129,86 @@ public parseBlockType = (
       blockArgs isEmpty ifFalse: [blockArgs removeLast].
       ^(BlockTypeAST formals: blockArgs  return: blockReturn)
         start: blockStart; end: blockEnd
+)
+public parseLazyModifier = (
+	tokenKind = #identifier ifTrue:
+		[tokenValue = #lazy ifTrue: [advanceToken. ^#lazy]].
+    expected: 'lazy'.
+)
+peekHasLazyModifier = (
+	(* LL(1) *)
+	tokenKind = #identifier ifFalse: [^false].
+	tokenValue = #lazy ifTrue: [^true].
+	^false
+)
+public parseLazySlotDeclaration = (
+	(* lazySlotDecl = lazyModifier, accessModifier opt, slotDecl,
+	          ((tokenFromSymbol: #=) |
+	            (tokenFromSymbol: #'::=')
+	           ), expression, dot.. *)
+	| declStart am varStart varEnd varName type var init |
+	declStart:: tokenStart.
+    parseLazyModifier.
+	am:: parseAccessModifierOpt.
+	tokenKind = #identifier ifFalse: [expected: 'identifier'].
+	varStart:: tokenStart.
+	varEnd:: tokenEnd.
+	varName:: tokenValue asSymbol.
+	advanceToken.
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
+		[type: parseType].
+	var:: (VarDeclAST name: varName type: type)
+		start: varStart; end: varEnd.
+
+	tokenKind = #'::=' ifTrue:
+		[advanceToken.
+		 init:: parseSlotInitializer.
+		 ^MutableSlotDefAST new
+			accessModifier: am;
+			slotDecl: var;
+			initializer: init;
+			start: declStart; end: init end].
+
+	(tokenKind = #binary and: [tokenValue = '=']) ifTrue:
+		[advanceToken.
+		 init:: parseSlotInitializer.
+		 ^ImmutableSlotDefAST new
+			accessModifier: am;
+            isLazy: true;
+			slotDecl: var;
+			initializer: init;
+			start: declStart; end: init end].
+
+	^MutableSlotDefAST new
+		accessModifier: am;
+        isLazy: true;
+		slotDecl: var;
+		initializer: nil;
+		start: declStart; end: tokenEnd
+)
+public parseInstanceSide = (
+	(* sideDecl = lparen, classDecl star, lazySlotDecl star, methodDecl star, rparen. *)
+
+	| nestedClasses = List new. lazySlots = List new. methods = List new. member |
+
+	(tokenKind = #'(') ifFalse: [expected: '('].
+	advanceToken.
+
+	[peekHasClassDeclaration] whileTrue:
+		[nestedClasses add: parseClassDeclaration].
+
+	[peekHasLazyModifier] whileTrue:
+		[lazySlots add: parseLazySlotDeclaration].
+        
+	[tokenKind = #')'] whileFalse:
+		[methods add: parseMethodDeclaration].
+
+	advanceToken. (* Consume ) *)
+
+	^SideAST new
+		lazySlots: lazySlots;
+		nestedClasses: nestedClasses;
+		methods: methods
 )
 ) : (
 )

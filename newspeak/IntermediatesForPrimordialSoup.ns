@@ -117,25 +117,10 @@ public declaration <IntermediateClassDeclaration> = d.
 public isMeta <Boolean> = m.
 public slots <List[IntermediateSlotDeclaration]> ::= List new.
 public methods <List[IntermediateMethod]> = List new.
+public lazySlots <List[IntermediateLazySlot]> = List new.
 public nestedClasses <List[IntermediateClassDeclaration]> = List new.
 public builder <MixinBuilder>
 |) (
-public assembleMethods = (
-	| assembledMethods = List new. |
-	assembledMethods addAll: methods.
-	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
-	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
-	isMeta
-		ifTrue: [assembledMethods add: declaration factory]
-		ifFalse: [assembledMethods addAll: declaration initializers].
-	^assembledMethods
-)
-public assembleSlots = (
-	| assembledSlots = List new. |
-	assembledSlots addAll: slots.
-	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
-	^assembledSlots
-)
 public checkNameConflictsForFactory: selector <Symbol> = (
 	assert: [isMeta] message: ''.
 	methods do:
@@ -184,6 +169,24 @@ public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean>
 		method selector = (slotName, ':') ifTrue:
 			[^Error signal: 'Class already has method named ', method selector]].
 )
+public assembleSlots = (
+	| assembledSlots = List new. |
+	assembledSlots addAll: slots.
+	lazySlots do: [:ls | ls addSlotsInto: assembledSlots ].    
+	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
+	^assembledSlots
+)
+public assembleMethods = (
+	| assembledMethods = List new. |
+	assembledMethods addAll: methods.
+    lazySlots do: [:ls | ls addMethodsTo: assembledMethods ].
+	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
+	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
+	isMeta
+		ifTrue: [assembledMethods add: declaration factory]
+		ifFalse: [assembledMethods addAll: declaration initializers].
+	^assembledMethods
+)
 ) : (
 )
 public class IntermediateSlotDeclaration = (|
@@ -226,8 +229,45 @@ public simpleName = (
 )
 ) : (
 )
-public class IntermediateLazySlot = () (
+public class IntermediateLazySlot = (
+|
+	public	intermediateInitMethod
+	public	intermediateMainMethod
+	public	intermediateSetterMethod
+|
+) (
+public isMutable = (
+	^intermediateSetterMethod isNil not.
+)
+public name = (
+	^intermediateMainMethod selector.
+)
+public source = (
+	^intermediateMainMethod source
+)
+public addSlotsInto: aCollection = (
+	aCollection add: intermediateSlotDeclaration.
+)
+public addMethodsTo: methods = (
+	methods add: intermediateInitMethod.
+	methods add: intermediateMainMethod.
+	isMutable ifTrue: [methods add: intermediateSetterMethod]
+)
+public intermediateSlotDeclaration = (
+	|slot|
+	slot:: IntermediateSlotDeclaration new.
+	slot name: (class slotNameForLazySlotNamed: name).
+	slot isMutable: true.
+	slot accessModifier: #private.
+	^slot.
+)
 ) : (
+public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
+  ^(selector, '`method') asSymbol
+)
+public slotNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
+  ^(selector, '`cacheSlot') asSymbol
+)
 )
 ) : (
 )
