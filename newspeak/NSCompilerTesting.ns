@@ -1,5 +1,5 @@
 Newspeak3
-'Newspeak'
+'Root'
 class NSCompilerTesting usingPlatform: platform testingStrategy: strategy minitest: minitest = (
 (* A replacement of NSCompilerTests, relying on a separate testing strategy object to actually run the tests in some target environment. See the class comment of InImageNSCompilerTestingStrategy for a description of the testing strategy protocol.
 
@@ -198,6 +198,7 @@ public counterGenerator: param = (
 	gen:: sample counterGenerator: #ignored.
 	c1:: gen value.
 	c2:: gen value.
+
 	assertList: c1 value equals: {1. 10}.
 	assertList: c1 value equals: {2. 11}.
 	assertList: c2 value equals: {1. 12}.
@@ -303,14 +304,62 @@ public testCompilePseudoVariables = (
 			)
 		)'
 )
+public testConflictingMixinApplication = (
+	TODO.
+	test:
+		'public class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Vector x: x y: y = (| a = x. b = y. |) ()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Point x: x y: y <: Vector x: x y: y <: Colored color: c.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p a = 3].
+				assert: [p b = 4].
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testConflictingSuperMixinApplication = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x. public y = y. |) ()
+			class Vector x: x y: y = (| public a = x. public b = y. |) ()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point x: x y: y <: Vector x: x y: y <: Colored color: c ( | public z = z. |)()
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p a = 3].
+				assert: [p b = 4].
+				assert: [p color = ''red''].
+			)
+		)'.
+)
 public testControlMessageValues = (
 	testSampleMethod: ''
 	with: '
 assert: (false ifTrue: [7]) equals: nil.
 assert: (true ifFalse: [7]) equals: nil.
-assert: (7 timesRepeat: [9]) equals: nil.
-assert: (3 to: 7 do: [:ignore | ]) equals: nil.
-assert: (3 to: 7 by: 2 do: [:ignore|]) equals: nil.
+
+assert: (nil ifNotNil: [7]) equals: nil.
+assert: (7 ifNil: [9]) equals: 7.
+
+assert: (7 timesRepeat: [9]) equals: 7.
+assert: (3 to: 7 do: [:ignore | ]) equals: 3.
+assert: (3 to: 7 by: 2 do: [:ignore|]) equals: 3.
+
 assert: ([false] whileTrue: [7]) equals: nil.
 assert: ([true] whileFalse: [7]) equals: nil.
 assert: ([false] whileTrue) equals: nil.
@@ -324,10 +373,12 @@ assert: (13 // 5) equals: 2.
 assert: (-13 // 5) equals: -3.
 assert: (13 // -5) equals: -3.
 assert: (-13 // -5) equals: 2.
+
 assert: (5 // 13) equals: 0.
 assert: (-5 // 13) equals: -1.
 assert: (5 // -13) equals: -1.
 assert: (-5 // -13) equals: 0.
+
 assert: (16 // 8) equals: 2.
 assert: (-16 // 8) equals: -2.
 assert: (16 // -8) equals: -2.
@@ -340,14 +391,142 @@ assert: (13 quo: 5) equals: 2.
 assert: (-13 quo: 5) equals: -2.
 assert: (13 quo: -5) equals: -2.
 assert: (-13 quo: -5) equals: 2.
+
 assert: (5 quo: 13) equals: 0.
 assert: (-5 quo: 13) equals: 0.
 assert: (5 quo: -13) equals: 0.
 assert: (-5 quo: -13) equals: 0.
+
 assert: (16 quo: 8) equals: 2.
 assert: (-16 quo: 8) equals: -2.
 assert: (16 quo: -8) equals: -2.
 assert: (-16 quo: -8) equals: 2.'
+)
+public testDoubleMixinApplication = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Depth z: z = (| z = z. |)()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point x: x y: y <: Depth z: z <: Colored color: c.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testDoubleMixinApplicationSuperclass = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x. public y = y. |) ()
+			class Depth z: z = (| public z = z. |)()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point x: x y: y <: Depth z: z <: Colored color: c( | public origin ::= 100. |)(
+				public sum = (^x + y + z + origin)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p origin = 100].
+				assert: [p color = ''red''].
+				assert: [p sum = 112].
+			)
+		)'.
+)
+public testDoubleMixinApplicationSuperclassNew1 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point = (| public x  public y |) ()
+			class Depth z: z = (| public z = z. |)()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point <: Depth z: z <: Colored color: c(
+				| public origin = 0. |
+				x:: x.
+				y:: y.
+			)(
+				public sum = (^x + y + z + origin)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p origin = 0].
+				assert: [p color = ''red''].
+				assert: [p sum = 12].
+			)
+		)'.
+)
+public testDoubleMixinApplicationSuperclassNew2 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x.  public y = y. |) ()
+			class Depth = (| public z |)()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point x: x y: y <: Depth <: Colored color: c(
+			| public origin = 0. |
+			z:: z.
+			)(
+			public sum = (^x + y + z + origin)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p origin = 0].
+				assert: [p color = ''red''].
+				assert: [p sum = 12].
+			)
+		)'.
+)
+public testDoubleMixinApplicationSuperclassNew3 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x.  public y = y. |) ()
+			class Depth z: z = (| public z = z. |)()
+			class Colored = (| public color |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Point x: x y: y <: Depth z: z <: Colored (
+				| public origin = 0. |
+				color:: c.
+			)(
+				public sum = (^x + y + z + origin)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p origin = 0].
+				assert: [p color = ''red''].
+				assert: [p sum = 12].
+			)
+		)'.
 )
 public testDoublyNestedIWhileInIf = (
 	testSampleMethod: 'public doublyNestedWhileInIf = (| tf tg |
@@ -417,7 +596,7 @@ public testEmptyNoParamBlock = (
 	testSampleMethod: 'public emptyNoParamBlock = (^[]) '
 	with:
 '
-   assert: [sample emptyNoParamBlock isKindOfClosure].
+   assert: [sample emptyNoParamBlock isClosure].
    assert: sample emptyNoParamBlock value equals: nil.
 '
 )
@@ -429,7 +608,7 @@ public testEmptyOneParamBlock = (
 	testSampleMethod: 'public emptyOneParamBlock = (^[:x | ])'
 	with:
 '
-	assert: [sample emptyOneParamBlock isKindOfClosure].
+	assert: [sample emptyOneParamBlock isClosure].
 	assert: [nil = (sample emptyOneParamBlock value: 91)]
 '
 )
@@ -437,7 +616,7 @@ public testEmptyTwoParamBlock = (
 	testSampleMethod: 'public emptyTwoParamBlock = (^[:x :y | ])'
 	with:
 '
-	assert: [sample emptyTwoParamBlock isKindOfClosure].
+	assert: [sample emptyTwoParamBlock isClosure].
 	assert: (sample emptyTwoParamBlock value: 91 value: 42) equals: nil.
 '
 )
@@ -608,6 +787,30 @@ public testImplicitOuterInInitializer = (
 	)
 )'
 )
+public testIncestuousSiblings16 = (
+	test:
+		'class Sample = () (
+			public class ISup = () (
+				public ketchup = (^16)
+			)
+			public class ISub = ISup () (
+				public nekojiru = (^ketchup + 1)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				| innerSup innerSub anInnerSub |
+				innerSup:: sample ISup.
+				innerSub:: sample ISub.
+				anInnerSub:: innerSub new.
+				assert: anInnerSub ketchup equals: 16.
+				assert: anInnerSub nekojiru equals: 17.
+				(*...*)
+			)
+		)'.
+	TODO (* modifying the nested class declaration? *)
+)
 public testInit17 = (
 	test:
 'class Sample = () (
@@ -690,6 +893,15 @@ public testInlinedSetters = (
 				assert: [sample slot2 = sample expr4].
 			)
 		)'
+)
+public testInlinedTempReadBeforeWritten = (
+	testSampleMethod: 'public run = (
+		1 to: 10 do: [:ignore | | temp tempIsNil |
+			tempIsNil: temp isNil.
+			assert: [tempIsNil]. (*Do not access temp from a closure to avoid effects of indirection.*)
+			temp: 7.
+		])'
+	with: 'assert: [sample = sample run]'
 )
 public testInlinedTemporaryShadowingIndirection = (
 	testSampleMethod: 'public inlinedTemporaryShadowingIndirection = (
@@ -814,6 +1026,7 @@ public testInner18 = (
 				innerKlass12:: o1 Inner2.
 				innerKlass21:: o2 Inner1.
 				innerKlass22:: o2 Inner2.
+
 				assert: [o1 Inner1 = o1i1 i1] description: ''Assertion failed: o1 Inner1 = o1i1 i1''.
 				assert: [o1 Inner1 = o1i2 i1] description: ''Assertion failed: o1 Inner1 = o1i2 i1''.
 				assert: [o2 Inner1 = o2i1 i1] description: ''Assertion failed: o2 Inner1 = o2i1 i1''.
@@ -821,6 +1034,7 @@ public testInner18 = (
 				assert: [o1 Inner1 = o1i2 i1] description: ''Assertion failed: o1 Inner1 = o1i2 i1''.
 				assert: [o1 Inner1 = o2i2 supI1] description: ''Assertion failed: o1 Inner1 = o2i2 supI1''.
 				assert: [(o1 Inner1 = o2 Inner1) not] description: ''Assertion failed: o1 Inner1 ~= o2 Inner1''.
+
 			)
 		)'
 )
@@ -899,6 +1113,7 @@ public testInner7 = (
 			(*A perverse nested test case. This example only works if nested classes
 			are created lazily (as they are right now). An eager semantics would
 			cause an infinite regress of nested classes being created.
+
 			Is even the eager case actually a problem? One can always write an
 			infinite loop in an initializer. How is this different?*)
 			| Sup = aClass. |
@@ -921,11 +1136,13 @@ public testInner7 = (
 					description: ''Assertion failed: anInstance Inner = anInstance Inner''.
 				assert: [anInstance Inner new foo = 91]
 					description: ''Assertion failed: anInstance Inner new foo = 91''.
+
 				anInnerInstance:: anInstance Inner new.
 				assert: [anInnerInstance Inner new foo = 91]
 					description: ''Assertion failed: anInnerInstance Inner new foo = 91''.
 				assert: [anInnerInstance Inner = anInnerInstance Inner]
 					description: ''Assertion failed: anInnerInstance Inner = anInnerInstance Inner''.
+
 				anInnerInnerInstance:: anInstance Inner new Inner new.
 				assert: [anInnerInnerInstance Inner new foo = 91]
 					description: ''Assertion failed: anInnerInnerInstance Inner new foo = 91''.
@@ -957,18 +1174,23 @@ public testInner8 = (
 			public test = (
 				| innerKlass innerInnerKlass innerInnerInnerKlass anInstance anInnerInstance anInnerInnerInstance |
 				anInstance:: klass s: Object.
+
 				assert: [anInstance Inner1 = anInstance Inner1]
 					description: ''Assertion failed: anInstance Inner1 = anInstance Inner1''.
 				assert: [anInstance Inner1 new foo = 91]
 					description: ''Assertion failed: anInstance Inner1 new foo = 91''.
+
 				innerKlass:: anInstance Inner1.
 				anInnerInstance:: innerKlass new.
+
 				assert: [anInnerInstance Inner11 = anInnerInstance Inner11]
 					description: ''Assertion failed: anInnerInstance Inner11 = anInnerInstance Inner11''.
 				assert: [anInnerInstance  Inner11 new bar = 182]
 					description: ''Assertion failed: anInnerInstance  Inner11 new bar = 182''.
+
 				innerInnerKlass:: anInnerInstance Inner11.
 				anInnerInnerInstance:: innerInnerKlass  new.
+
 				innerInnerInnerKlass:: anInnerInnerInstance Inner111.
 				assert: [anInnerInnerInstance Inner111 = anInnerInnerInstance Inner111]
 					description: ''Assertion failed: anInnerInnerInstance Inner111 = anInnerInnerInstance Inner111''.
@@ -1092,9 +1314,134 @@ public testMNUFromSuperSend = (
 			)
 		)'.
 )
+public testMixinApplication = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Point x: x y: y <: Colored color: c.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testMixinApplicationNew1 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point = (| x y |) ()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Point <: Colored color: c.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = nil].
+				assert: [p y = nil].
+				assert: [p color = ''red''].
+				p x: 3.
+				assert: [p x = 3].
+				p y: 4.
+				assert: [p y = 4].
+			)
+		)'.
+)
+public testMixinApplicationNew11 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point = (| x y |) ()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Point new <: Colored color: c.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = nil].
+				assert: [p y = nil].
+				assert: [p color = ''red''].
+				p x: 3.
+				assert: [p x = 3].
+				p y: 4.
+				assert: [p y = 4].
+			)
+		)'.
+)
+public testMixinApplicationNew2 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Colored = (| color |) ()
+			public class ColoredPoint x: x y: y color: c = Point x: x y: y <: Colored.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p color = nil].
+				p color: ''red''.
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testMixinApplicationNew21 = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Colored = (| color |) ()
+			public class ColoredPoint x: x y: y color: c = Point x: x y: y <: Colored new.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p color = nil].
+				p color: ''red''.
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testMixinApplicationSuperclass = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x. public y = y. |) ()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Point x: x y: y <: Colored color: c ( | public z = 0. |)(
+			public sum = (^x + y + z)
+			)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+	                  assert: [p z = 0].
+				assert: [p color = ''red''].
+				assert: [p sum = 7].
+			)
+		)'.
+)
 public testMultipleSetters = (
 	testSampleMethod: 'public testMultipleSetters = (
 	| x y z |
+
 	^x:: (y:: 42) + (z:: 49).
 )'
 	with: 'assert: [sample testMultipleSetters = 91]'
@@ -1316,12 +1663,14 @@ public testOuterSendLegalTargets = (
 				assertList: sample A new D foo equals: {4. 5. 13}.
 				assertList: sample A new foo equals: {5. 13}.
 				assertList: sample A foo equals: {6. 13}.
+
 				assertList: sample B new C new foo equals: {7. 11. 13}.
 				assertList: sample B new C foo equals: {8. 11. 13}.
 				assertList: sample B new D new foo equals: {9. 11. 13}.
 				assertList: sample B new D foo equals: {10. 11. 13}.
 				assertList: sample B new foo equals: {11. 13}.
 				assertList: sample B foo equals: {12. 13}.
+
 				assertList: sample foo equals: {13}.
 			)
 		)'.
@@ -1374,6 +1723,9 @@ public testParameterImmutabilityEnforced = (
 public testParameterTemporaryConflictInBlock = (
 	assertCompilationErrorIn: 'class Sample = () (foo = ( [:x | | x | ] ))'.
 )
+public testParameterTemporaryConflictInInlinedBlock = (
+	assertCompilationErrorIn: 'class Sample = () (foo = ( 1 to: 10 do: [:x | | x | ] ))'.
+)
 public testParameterTemporaryConflictInMethod = (
 	assertCompilationErrorIn: 'class Sample = () (foo: x = ( | x | ))'.
 )
@@ -1395,10 +1747,12 @@ assert: (13 \\ 5) equals: 3.
 assert: (-13 \\ 5) equals: 2.
 assert: (13 \\ -5) equals: -2.
 assert: (-13 \\ -5) equals: -3.
+
 assert: (5 \\ 13) equals: 5.
 assert: (-5 \\ 13) equals: 8.
 assert: (5 \\ -13) equals: -8.
 assert: (-5 \\ -13) equals: -5.
+
 assert: (16 \\ 8) equals: 0.
 assert: (-16 \\ 8) equals: 0.
 assert: (16 \\ -8) equals: 0.
@@ -1411,10 +1765,12 @@ assert: (13 rem: 5) equals: 3.
 assert: (-13 rem: 5) equals: -3.
 assert: (13 rem: -5) equals: 3.
 assert: (-13 rem: -5) equals: -3.
+
 assert: (5 rem: 13) equals: 5.
 assert: (-5 rem: 13) equals: -5.
 assert: (5 rem: -13) equals: 5.
 assert: (-5 rem: -13) equals: -5.
+
 assert: (16 rem: 8) equals: 0.
 assert: (-16 rem: 8) equals: 0.
 assert: (16 rem: -8) equals: 0.
@@ -1727,11 +2083,14 @@ public testSetter = (
 				| local |
 				local:: local:: 1.
 				assert: [local = 1] description: ''Assertion failed: 1''.
+
 				slot:: slot:: slot:: 2.
 				assert: [slot = 2] description: ''Assertion failed: 2''.
+
 				local:: slot:: 3.
 				assert: [local = 3] description: ''Assertion failed: l3''.
 				assert: [slot = 3] description: ''Assertion failed: s3''.
+
 				local:: 4.
 				^slot:: slot2:: slot3:: local
 			)
@@ -1746,6 +2105,29 @@ public testSetter = (
 				assert: [sample slot3 = 4] description: ''Assertion failed: slot3 = 4''.
 			)
 		)'
+)
+public testSimultaneousSlotsInClass = (
+	test:
+		'class Sample = (
+			|| public a = {b}. public b = {a}. ||
+		)()'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				assert: [sample a first = sample b].
+				assert: [sample b first = sample a].
+			)
+		)'
+)
+public testSimultaneousSlotsInMethod = (
+	testSampleMethod: 'public simulSlot = ( || public a = {b}. public b = {a}. || ^{a. b} )'
+	with:
+	' | ab a b |
+	ab:: sample simulSlot.
+	a:: ab first.
+	b:: ab last.
+	assert: [a first yourself= b yourself].
+	assert: [b first yourself = a yourself]'
 )
 public testSlotDeclarationInInlinedLoop = (
 (* Regression test for NS2Dart inlining. When the condition sequence was split, the slot declaration was duplicated, appearing both in the prologue and after the loop body. The variable in the loop body shadowed the one in the prologue, so the condition expression only ever sees the first value. *)
@@ -1918,6 +2300,7 @@ withStdOutput: stdOutput <Alien | Integer>
 withStdError: stdError <Alien | Integer>
 ^<Win32apiPROCESSINFORMATION> = (
 	| lpStartupInfo |
+
 	Alien autoFreeAfter: [:autoFree |
 		lpStartupInfo
 			dwFlags: STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
@@ -1947,6 +2330,7 @@ public testSuperClassClause1 = (
 		)
 			public makeInnerInstance = (^(Inner1 new: 1) foo)
 	)
+
 	public class SubHierarchy = SuperHierarchy (
 	) (
 		public class Inner1 new: x = super Inner1 new: x () (
@@ -1964,6 +2348,7 @@ public testSuperClassClause1 = (
 		superInstance:: superklass new.
 		assert: [superInstance Inner1 = superInstance Inner1].
 		assert: [(superInstance Inner1 new: 2) foo = 44].
+
 		subklass:: sample SubHierarchy.
 		subInstance:: subklass new.
 		assert: [subInstance Inner1 = subInstance Inner1].
@@ -1981,6 +2366,7 @@ public testSuperClassClause2 = (
 				^v + 42
 			)
 		)
+
 		public class InnerInnerHierarchy = () (
 			public class Inner1 new: x = outer InnerHierarchy Inner1 new: x () (
 				public foo = (
@@ -1998,6 +2384,7 @@ public testSuperClassClause2 = (
 		innerInstance:: innerklass new.
 		assert: [innerInstance Inner1 = innerInstance Inner1].
 		assert: [(innerInstance Inner1 new: 2) foo = 44].
+
 		innerInnerklass:: innerInstance InnerInnerHierarchy.
 		innerInnerInstance:: innerInnerklass new.
 		assert: [innerInnerInstance Inner1 = innerInnerInstance Inner1].
@@ -2013,6 +2400,7 @@ public testSuperClassClause3 = (
 			^v + 42
 		)
 	)
+
 	public class Inner1 new: x = outer Sample Inner0 new: x () (
 		public foo = (
 			^v * super foo
@@ -2025,6 +2413,7 @@ public testSuperClassClause3 = (
 		| innerklass0 innerklass1 innerInstance0 innerInstance1 |
 		innerklass0:: sample Inner0.
 		assert: [(innerklass0 new: 2) foo = 44].
+
 		innerklass1:: sample Inner1.
 		assert: [(innerklass1 new: 2) foo = 88].
 	)
@@ -2038,6 +2427,7 @@ public testSuperClassClause4 = (
 			^v + 42
 		)
 	)
+
 	public class Inner1 new: x = self Inner0 new: x () (
 		public foo = (
 			^v * super foo
@@ -2050,10 +2440,54 @@ public testSuperClassClause4 = (
 		| innerklass0 innerklass1 innerInstance0 innerInstance1 |
 		innerklass0:: sample Inner0.
 		assert: [(innerklass0 new: 2) foo = 44].
+
 		innerklass1:: sample Inner1.
 		assert: [(innerklass1 new: 2) foo = 88].
 	)
 )'
+)
+public testSuperConflictingMixinApplication = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| x = x. y = y. |) ()
+			class Vector x: x y: y = (| a = x. b = y. |) ()
+			class Colored color: c = (| color = c. |) ()
+			public class ColoredPoint x: x y: y color: c = Colored color: c <: Point x: x y: y <: Vector x: x y: y.
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p a = 3].
+				assert: [p b = 4].
+				assert: [p color = ''red''].
+			)
+		)'.
+)
+public testSuperConflictingSuperMixinApplication = (
+	TODO.
+	test:
+		'class Sample = () (
+			class Point x: x y: y = (| public x = x. public y = y. |) ()
+			class Vector x: x y: y = (| public a = x. public b = y. |) ()
+			class Colored color: c = (| public color = c. |) ()
+			public class ColoredPoint x: x y: y z: z color: c = Colored color: c <: Point x: x y: y <: Vector x: x y: y ( | public z = z. |)()
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = ( | p |
+				p:: sample ColoredPoint x: 3 y: 4 z: 5 color: ''red''.
+				assert: [p x = 3].
+				assert: [p y = 4].
+				assert: [p z = 5].
+				assert: [p a = 3].
+				assert: [p b = 4].
+				assert: [p color = ''red''].
+			)
+		)'.
 )
 public testSymbolLiteral = (
 	testSampleMethod: 'public symbolLiteral = (#abc)'
@@ -2068,6 +2502,7 @@ public testTargetReservedWords = (
 
 	assertNoCompilationErrorIn: 'class Sample = (
 	| abstract as assert boolean break byte case catch class const continue debugger default delete do double dynamic else enum export extends factory final finally float for function get goto if in implements import is int instanceof interface long native negate new null operator package private protected public return set short static switch synchronized this throw throws transient try typedef typeof use var void volatile while with |
+
 	)(
 	foo = (
 		| abstract as assert boolean break byte case catch class const continue debugger default delete do double dynamic else enum export extends factory final finally float for function get goto if in implements import |
@@ -2130,15 +2565,6 @@ public testToByDo1 = (
 	 ) '
 	with: 'assert: sample testToByDo1 equals: 75.'
 )
-public testToByDo2 = (
-	testSampleMethod: 'public testToByDo2 = (
-	| ta tb  tc td te tf tg th |
-	tf:: 37.
-	tf to: 74 by: 36 do: [:i <integer> | tf:: tf +1].
-	^tf
-	 ) '
-	with: 'assert: sample testToByDo2 equals: 39.'
-)
 public testToByDoNonLiteralBlock = (
 	testSampleMethod: 'public testToByDoNonLiteralBlock = (
 		| sum ::= 0. block = [:value | sum:: sum + value]. |
@@ -2154,6 +2580,15 @@ public testToByDoNonLiteralStep = (
 		^sum
 	) '
 	with: 'assert: sample testToByDoNonLiteralStep equals: 250.'
+)
+public testToByDo2 = (
+	testSampleMethod: 'public testToByDo2 = (
+	| ta tb  tc td te tf tg th |
+	tf:: 37.
+	tf to: 74 by: 36 do: [:i <integer> | tf:: tf +1].
+	^tf
+	 ) '
+	with: 'assert: sample testToByDo2 equals: 39.'
 )
 public testToDo1 = (
 	testSampleMethod: 'public testToDo1 = (
@@ -2237,9 +2672,16 @@ public testTupleOfIntegers = (
 assert: [{1. 2} size = 2].
 assert: [{1 .2} size = 2].
 assert: [{1 . 2} size = 2].
+
 assert: [{16r1. 2} size = 2].
 assert: [{16r1 .2} size = 2].
 assert: [{16r1 . 2} size = 2].
+'
+)
+public testTuplesAreShallowlyImmutable = (
+	testSampleMethod: ''
+	with: '
+assert: [{1. 9. 8. 4} at: 2 put: 8] signals: Error.
 '
 )
 public testTwoParamBlock = (
@@ -2283,6 +2725,79 @@ n:: 1.
 ^n
 ) '
 	with: 'assert: sample testWhileWithScope equals: 32.'
+)
+public testAssignNilToMutableLazySlotForcesToRecomputeExpression = (
+	test:
+		'class Sample = ( | public counter ::= 0. | ) (
+			lazy public testMutable ::= incrementOneAndReturnCounter.
+			private incrementOneAndReturnCounter = ( counter:: counter  + 1. ^counter)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				assert: sample counter equals: 0.
+				assert: sample testMutable equals: 1.
+				assert: sample counter equals: 1.
+				sample testMutable: nil.
+				assert: sample counter equals: 1.
+				assert: sample testMutable equals: 2.
+				assert: sample counter equals: 2.
+			)
+		)'.
+)
+public testImplicitSelfSendInLazySlot = (
+	test:
+		'class Sample = () (
+			lazy public testISS = return1.
+			private return1 = (^1)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				assert: sample testISS equals: 1.
+			)
+		)'.
+)
+public testNLRInLazySlot = (
+	testSampleLazySlot: 'lazy public testNLR1 = true ifTrue: [ ^1 ] ifFalse: [ ^ 0].'
+	with: 'assert: sample testNLR1 equals: 1'
+)
+public testLazySlotIsComputedLazilyAndCachedLater = (
+	test:
+		'class Sample = ( | public counter ::= 0. | ) (
+			lazy public testLazy = incrementOneAndReturnCounter.
+			private incrementOneAndReturnCounter = ( counter:: counter  + 1. ^counter)
+		)'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				assert: sample counter equals: 0.
+				assert: sample testLazy equals: 1.
+				assert: sample counter equals: 1.
+				assert: sample testLazy equals: 1.
+				assert: sample counter equals: 1.
+			)
+		)'.
+)
+public testSampleLazySlot: sampleLazySlot <String> with: testMethodBody <String> = (
+	test:
+'class Sample = () (',
+	sampleLazySlot,
+')'
+	with:
+'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+	public test = (',
+	testMethodBody,
+	')
+)'
+)
+public testImmutableLazySlotDoesntHaveSetterMethod = (
+	testSampleLazySlot: 'lazy public test = 1.'
+	with: 'assert: [sample test: nil. ] signals: MessageNotUnderstood '
+)
+public testSimpleLazySlot = (
+	testSampleLazySlot: 'public lazy testReturn1 = 1.'
+	with: 'assert: sample testReturn1 equals: 1'
 )
 ) : (
 TEST_CONTEXT = (
