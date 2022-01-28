@@ -970,6 +970,13 @@ public superclass ^<ClassMirror> = (
 public allInstances ^ <Array> = (
 	^class allInstancesOf: reflectee
 )
+public lazySlots ^<Collection[MethodMirror]> = (
+	| cls <Behavior> results <Collection[MethodMirror]> |
+	cls:: reflectee.
+	results:: List new.
+#BOGUS. #TBD.
+	^MirrorGroup wrapping: results.
+)
 ) : (
 public allInstancesOf: b <Behavior> ^ <Array> = (
 	(* :literalmessage: primitive: 96 *)
@@ -1172,6 +1179,19 @@ public methods ^<MirrorGroup[MethodMirror]> = (
 		[:method |
 		method isSynthetic ifFalse:
 			[results add: (MethodMirror reflecting: method)]].
+	^MirrorGroup wrapping: results
+)
+public lazySlots = (
+	| results = List new. |
+    (* Go thru raw slots *)
+	mixin _slots do:
+		[:slotDescriptor | | slotName = slotDescriptor at: 1.  i = slotName indexOf: '`cacheSlot'. | 
+          (* select slots whose name ends with `cachedSlot *)
+          (i ~= 0 and: [slotName size - 9 = i]) ifTrue: [
+             (* and create a mirror for them *)
+			  results add: (LazySlotMirror reflecting: (slotName copyFrom: 1 to: i -1) in: self)
+              ]
+       ].
 	^MirrorGroup wrapping: results
 )
 ) : (
@@ -2242,7 +2262,7 @@ public receiver ^ <ObjectMirror> = (
 )
 ) : (
 )
-public class LazySlotMirror reflecting: m <Symbol> in: em <MixinMirror> = Mirror reflecting: m (
+public class LazySlotMirror reflecting: m <Symbol> in: em <MixinMirror> =  (
 (* The mirror for a particular lazy slot. Every lazy slot consist of an underlying storage location (the cache) and 2-3 methods: 
 
 a. The getter, which tests if the slot is nil, and if so, calls the init method (see (b) below) to compute the value and set the underlying storage. In any case it returns the value stored in the slot.  This method is sometimes referred to as the the main method of the lazy slot.
@@ -2252,41 +2272,16 @@ b. The init method, in charge of doing the actual computation.
 c. If the slot is mutable, there will be a third method, which is an ordinary setter.  
 *)
 |
+    reflectee  <Symbol> = m.
 	enclosingMixinMirror <MixinMirror>  = em.
-	public mainMethod <MethodMirror> = em methods findMirrorNamed: m.
+	public mainMethod <MethodMirror> = MethodMirror reflecting: (mixin _methods select: [:mtd | mtd selector = m]) first.
 |
 ) (
 public accessModifier ^<Symbol> = (
 	^mainMethod accessModifier.
 )
-public buildIntermediate = (
-	| ilazySlot  |
-
-	ilazySlot:	intermediates IntermediateLazySlot new.
-	ilazySlot intermediateInitMethod: (buildIntermediateMethodFor: (intermediates IntermediateLazySlot initMethodNameForLazySlotNamed: name)).
-	ilazySlot intermediateMainMethod: (buildIntermediateMethodFor: name).
-
-	isMutable ifTrue:
-		[ ilazySlot intermediateSetterMethod: (buildIntermediateMethodFor: (name, ':') asSymbol) ].
-
-	^ilazySlot
-)
-private buildIntermediateMethodFor: aSelector = (
-	| intermediate method |
-	intermediate:: intermediates IntermediateMethod new.
-	intermediate selector: aSelector.
-	intermediate category: (mixin organization categoryOfElement: aSelector).
-	intermediate method: (mixin methodDictionary at: aSelector).
-	intermediate methodMixin: mixin.
-	intermediate accessModifier: intermediate method accessModifier.
-	intermediate isSynthetic: false.
-	^intermediate.
-)
 public category ^<Symbol> = (
 	^class lazySlotsCategory
-)
-public definingClass = (
-	^mainMethod methodClass
 )
 public enclosingMixin = (
 	^enclosingMixinMirror reflectee
@@ -2297,14 +2292,8 @@ public initMethodName = (
 public isExpression ^<Boolean> = (
 	^false.
 )
-public isKindOfMethodMirror = (
-	^true
-)
 public isKindOfLazySlotMirror = (
 	^true
-)
-public messages = (
-	^initMethod messages
 )
 public name ^<Symbol> = (
 	^reflectee.
@@ -2345,9 +2334,6 @@ parseMetadata ^ <MetadataParser> = (
 public metadata ^ <Map[String, String]> = (
   ^parseMetadata metadata
 )
-private initMethod = (
-	^definingClass methods findMirrorNamed: initMethodName
-)
 public cachedValueFor: anObjectMirror <ObjectMirror> ^ <ObjectMirror> = (
 	^anObjectMirror getSlot: cacheSlotName.
 )
@@ -2363,33 +2349,22 @@ public simpleName ^ <Symbol> = (
 public selectors ^ <List[Symbol]> = (
   ^initMethod selectors (* probably need to add reflectee, and remove initMethod name *)
 )
-public definingMixin ^ <MixinMirror> = (
-	^MixinMirror reflecting: mainMethod definingMixin (* Why not just enclosingMixin? *)
-)
 cacheSlotName ^ <Symbol> = (
 	^intermediates IntermediateLazySlot slotNameForLazySlotNamed: name
 )
 public source ^ <String> = (
 	^mainMethod source.
 )
+private initMethod = (
+	^MethodMirror reflecting: (mixin _methods select: [:mtd | mtd selector = initMethodName]) first
+)
 public isMutable ^ <Boolean> = ( (* What ensures an unrelated method of this name is not created *)
-  ^definingClass methods includesMirrorNamed: name, ':'
+  ^ (mixin _methods select: [:mtd | mtd selector = (name, ':')]) isEmpty not
+)
+public definingMixin ^ <MixinMirror> = (
+	^enclosingMixinMirror
 )
 ) : (
-public isMainMethod: m in: aClass = (
-	^(isMethodForLazySlot: m in: aClass)
-		and: [(m selector includesSubString: '`') not]
-		and: [(m selector includesSubString: ':') not].
-)
-public isMethodForLazySlot: aMethod in: aClass = (
-	^(aClass organization listAtCategoryNamed: lazySlotsCategory)
-		includes: aMethod selector.
-)
-public mirrorsIn: aMixinMirror = (
-		 ^(aMixinMirror reflectee methodDictionary values
-		select: [:each <CompiledMethod> | isMainMethod: each in: aMixinMirror reflectee ])
-			collect: [:each <CompiledMethod> | self reflecting: each selector in: aMixinMirror].
-)
 public lazySlotsCategory = (
 	^#'lazyslots'
 )
