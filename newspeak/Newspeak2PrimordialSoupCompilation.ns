@@ -2662,40 +2662,6 @@ astForLazySlotSetter: tree <SlotDefAST> = (
 			statements: stmts);
 		copyPositionFrom: tree
 )
-astForLazySlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
-	| initializer initMethodName selector messagePattern body return newAST newSource stmts = List new.  |
-
-
-	selector:: tree name.
-	initializer:: tree initializer.
-
-	initMethodName:: IntermediateLazySlot initMethodNameForLazySlotNamed: selector.
-
-	messagePattern:: (MessagePatternAST new
-		selector: initMethodName;
-		accessModifier: #protected;
-		parameters: {}).
-
-	return:: ReturnStatAST new
-		expression: initializer;
-		yourself.
-
-    stmts add: return.
-	body:: (CodeBodyAST new
-		parameters: {}
-		temporaries: {}
-	      statements: stmts).
-
-
-	newAST:: MethodAST new
-		pattern: messagePattern;
-		body: body;
-		copyPositionFrom: tree.
-
-(*	newSource:: messagePattern accessModifier , ' ', 'zzzz', ' = ( ^ ', (sourceForNode: initializer), ' )'  .    *)
-	newSource:: messagePattern accessModifier , ' ', messagePattern selector, ' = ( ^ ', (sourceForNode: initializer), ' )'.
-	astAndSourceBlock value: newAST value: newSource.
-)
 astForLazySlotGetter: tree <SlotDefAST> = (
 (* Build an AST for a method that would lazily create a execute the expression in a lazy slot, and cache it. The generated code has the form
 
@@ -2801,6 +2767,50 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
 		intermediateLS intermediateSetterMethod: setterMethod].
 
 	^intermediateLS
+)
+astForLazySlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
+	| 
+    initializer 
+    initMethodName <Symbol>
+    selector <String>
+    messagePattern <MessagePatternAST>
+    body <CodeBodyAST>
+    return <ReturnStatAST>
+    newAST <MethodAST>
+    binding <String> = tree isMutable ifTrue: [' ::= '] ifFalse: [' = '].
+    newSource <String>
+    stmts <List> = List new.  
+    |
+
+
+	selector:: tree name.
+	initializer:: tree initializer.
+
+	initMethodName:: IntermediateLazySlot initMethodNameForLazySlotNamed: selector.
+
+	messagePattern:: (MessagePatternAST new
+		selector: initMethodName;
+		accessModifier: #protected;
+		parameters: {}).
+
+	return:: ReturnStatAST new
+		expression: initializer;
+		yourself.
+
+    stmts add: return.
+	body:: (CodeBodyAST new
+		parameters: {}
+		temporaries: {}
+	      statements: stmts).
+
+
+	newAST:: MethodAST new
+		pattern: messagePattern;
+		body: body;
+		copyPositionFrom: tree.
+
+    newSource:: selector, binding, (sourceForNode: initializer).
+	astAndSourceBlock value: newAST value: newSource.
 )
 ) : (
 )

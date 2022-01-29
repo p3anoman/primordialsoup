@@ -2362,7 +2362,7 @@ public definingMixin ^ <MixinMirror> = (
 	^enclosingMixinMirror
 )
 public source ^ <String> = (
-	^initMethod source.
+	^'lazy ',  accessModifier, ' ',  initMethod source, '.'.
 )
 ) : (
 public lazySlotsCategory = (
