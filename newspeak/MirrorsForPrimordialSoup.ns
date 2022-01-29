@@ -2352,9 +2352,6 @@ public selectors ^ <List[Symbol]> = (
 cacheSlotName ^ <Symbol> = (
 	^intermediates IntermediateLazySlot slotNameForLazySlotNamed: name
 )
-public source ^ <String> = (
-	^mainMethod source.
-)
 private initMethod = (
 	^MethodMirror reflecting: (mixin _methods select: [:mtd | mtd selector = initMethodName]) first
 )
@@ -2363,6 +2360,9 @@ public isMutable ^ <Boolean> = ( (* What ensures an unrelated method of this nam
 )
 public definingMixin ^ <MixinMirror> = (
 	^enclosingMixinMirror
+)
+public source ^ <String> = (
+	^initMethod source.
 )
 ) : (
 public lazySlotsCategory = (

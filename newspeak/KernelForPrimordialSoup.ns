@@ -1401,9 +1401,6 @@ public isProtected ^<Boolean> = (
 public isPublic ^<Boolean> = (
 	^#public = accessModifier
 )
-public isSynthetic ^<Boolean> = (
-	^nil = metadata
-)
 public numArgs ^<Integer> = (
 	^(header >> 0) bitAnd: 255
 )
@@ -1412,10 +1409,6 @@ public numTemps ^<Integer> = (
 )
 public primitive ^<Integer> = (
 	^(header >> 16) bitAnd: 1023
-)
-public source = (
-	metadata isKindOfDebugInfo ifTrue: [^metadata source].
-	^metadata
 )
 public source: s = (
 	(* Can be removed after next bootstrap compiler update. *)
@@ -1427,6 +1420,15 @@ public accessModifier ^<Symbol> = (
 	1 = ac ifTrue: [^#protected].
 	2 = ac ifTrue: [^#private].
 	halt.
+)
+public source = (
+	metadata isKindOfDebugInfo ifTrue: [^metadata source].
+	metadata isKindOfLazyInitializerTag ifTrue: [^metadata source].
+   
+	^metadata
+)
+public isSynthetic ^<Boolean> = (
+	^nil = metadata or: [metadata isKindOfLazyInitializerTag]
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
