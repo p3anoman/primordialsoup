@@ -55,7 +55,7 @@ public accessModifier <Symbol>
 
 public category
 public isSynthetic ::= false.
-public isLazySlotInitializer <Boolean> ::= false.
+public isLazySlotMethod <Boolean> ::= false.
 public builder
 |) (
 public bci ^<Integer> = (
@@ -106,7 +106,7 @@ public compiledMethod ^<CompiledMethod> = (
 			[assert: [source isKindOfString] message: 'Missing source'.
 			 method metadata: source].
              
-    isLazySlotInitializer ifTrue: [method metadata: (LazyInitializerTag source: source)].
+    isLazySlotMethod ifTrue: [method metadata: (LazySlotTag source: source)].
 
 	literals:: nil.
 	bytes:: nil.
@@ -260,7 +260,8 @@ public intermediateSlotDeclaration = (
 	^slot.
 )
 public addMethodsTo: methods = (
-    intermediateInitMethod isLazySlotInitializer: true.
+    intermediateInitMethod isLazySlotMethod: true.
+    intermediateMainMethod isLazySlotMethod: true.
 	methods add: intermediateInitMethod.
 	methods add: intermediateMainMethod.
 	isMutable ifTrue: [methods add: intermediateSetterMethod]
@@ -273,12 +274,12 @@ public slotNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
   ^(selector, '`cacheSlot') asSymbol
 )
 )
-class LazyInitializerTag source: s <String> = (
+class LazySlotTag source: s <String> = (
 	|
 	public source <String> = s.
 	|
 ) (
-public isKindOfLazyInitializerTag ^ <Booelan> = (
+public isKindOfLazySlotTag ^ <Booelan> = (
   ^true
 )
 ) : (
