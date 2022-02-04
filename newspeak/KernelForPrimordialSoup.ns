@@ -1423,12 +1423,12 @@ public accessModifier ^<Symbol> = (
 )
 public source = (
 	metadata isKindOfDebugInfo ifTrue: [^metadata source].
-	metadata isKindOfLazyInitializerTag ifTrue: [^metadata source].
+	metadata isKindOfLazySlotTag ifTrue: [^metadata source].
    
 	^metadata
 )
 public isSynthetic ^<Boolean> = (
-	^nil = metadata or: [metadata isKindOfLazyInitializerTag]
+	^nil = metadata or: [metadata isKindOfLazySlotTag]
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
