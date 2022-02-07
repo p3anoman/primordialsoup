@@ -1430,6 +1430,9 @@ public source = (
 public isSynthetic ^<Boolean> = (
 	^nil = metadata or: [metadata isKindOfLazySlotTag]
 )
+public isLazySlotMethod ^<Boolean> = (
+  ^metadata isKindOfLazySlotTag
+)
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
 	| ami |
