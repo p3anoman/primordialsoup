@@ -973,10 +973,7 @@ public allInstances ^ <Array> = (
 )
 public lazySlots ^<Collection[MethodMirror]> = (
 	| cls <Behavior> results <Collection[MethodMirror]> |
-	cls:: reflectee.
-	results:: List new.
-#BOGUS. #TBD.
-	^MirrorGroup wrapping: results.
+	^mixin lazySlots
 )
 ) : (
 public allInstancesOf: b <Behavior> ^ <Array> = (
