@@ -1213,19 +1213,19 @@ public addFromSource: source <String> = (
 
 	^MethodBuilder reflecting: imethod in: intermediate builder
 )
-public do: action = (
-	intermediate methods do:
-		[:intermediateMethod |
-		action value: (MethodBuilder
-			reflecting: intermediateMethod
-			in: intermediate builder)].
-)
 protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
 )
 public removeMirrorNamed: name <Symbol> = (
 	intermediate methods removeAllSuchThat:
 		[:imethod | imethod isSynthetic not and: [imethod selector = name]].
+)
+public do: action = (
+	intermediate methods do:
+		[:intermediateMethod |
+		action value: (MethodBuilder
+			reflecting: intermediateMethod
+			in: intermediate builder)].
 )
 ) : (
 )
@@ -2367,8 +2367,9 @@ public lazySlotsCategory = (
 	^#'lazyslots'
 )
 )
-public class LazySlotBuilder  reflecting: ir <IntermediateLazySlot> in: mb <MixinBuilder> = (|
-	public prvtIntermediate <IntermediateLazySlot> = ir.
+public class LazySlotBuilder  reflecting: ir <IntermediateLazySlot> in: mb <MixinBuilder> = (
+|
+	prvtIntermediate <IntermediateLazySlot> = ir.
 	prvtMixinBuilder <MixinBuilder> = mb.
 |) (
 public source ^<String> = (
@@ -2376,6 +2377,12 @@ public source ^<String> = (
 )
 public name = (
 	^prvtIntermediate name
+)
+public accessModifier = (
+	^prvtIntermediate accessModifier
+)
+public definingMixin ^ <MixinMirror> = (
+	^prvtMixinBuilder
 )
 ) : (
 )
@@ -2469,6 +2476,40 @@ public do: action = (
 		action value: (LazySlotMirror
 			reflecting: intermediateSlot name
 			in: intermediate builder)].
+)
+) : (
+)
+private class MutableLazySlotGroup fromIntermediate: ir = Collection (
+| private intermediate <IntermediateMixin> = ir. | ) (
+public addFromSource: source <String> = (
+	|
+	iSlot <IntermediateMethod>
+	|
+	imethod:: compiler
+		compileLazySlotSource: source
+		within: intermediate builder.
+
+	intermediate checkNameConflictsForMethod: iSlot selector.
+
+	intermediate lazySlots removeAllSuchThat:
+		[:ea | ea selector = iSlot selector].
+	intermediate lazySlots add: iSlot.
+
+	^MethodBuilder reflecting: iSlot in: intermediate builder
+)
+public do: action = (
+	intermediate lazySlots do:
+		[:intermediateSlot |
+		action value: (LazySlotBuilder
+			reflecting: intermediateSlot
+			in: intermediate builder)].
+)
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
+public removeMirrorNamed: name <Symbol> = (
+	intermediate lazySlots removeAllSuchThat:
+		[:iSlot | iSlot isSynthetic not and: [iSlot selector = name]].
 )
 ) : (
 )
