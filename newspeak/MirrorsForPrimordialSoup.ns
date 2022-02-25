@@ -2481,35 +2481,35 @@ public do: action = (
 )
 private class MutableLazySlotGroup fromIntermediate: ir = Collection (
 | private intermediate <IntermediateMixin> = ir. | ) (
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
 public addFromSource: source <String> = (
 	|
-	iSlot <IntermediateMethod>
+	iSlot <IntermediateLazySlot>
 	|
-	imethod:: compiler
+	iSlot:: compiler
 		compileLazySlotSource: source
 		within: intermediate builder.
 
-	intermediate checkNameConflictsForMethod: iSlot selector.
+	intermediate checkNameConflictsForMethod: iSlot name.
 
 	intermediate lazySlots removeAllSuchThat:
-		[:ea | ea selector = iSlot selector].
+		[:ea <IntermediateLazySlot> | ea name = iSlot name].
 	intermediate lazySlots add: iSlot.
 
 	^MethodBuilder reflecting: iSlot in: intermediate builder
 )
+public removeMirrorNamed: name <Symbol> = (
+	intermediate lazySlots removeAllSuchThat:
+		[:iSlot <IntermediateLazySlot> | iSlot isSynthetic not and: [iSlot name = name]].
+)
 public do: action = (
 	intermediate lazySlots do:
-		[:intermediateSlot |
+		[:intermediateSlot <IntermediateLazySlot> |
 		action value: (LazySlotBuilder
 			reflecting: intermediateSlot
 			in: intermediate builder)].
-)
-protected newForCollectUsingAdd: capacity = (
-	^List new: capacity
-)
-public removeMirrorNamed: name <Symbol> = (
-	intermediate lazySlots removeAllSuchThat:
-		[:iSlot | iSlot isSynthetic not and: [iSlot selector = name]].
 )
 ) : (
 )

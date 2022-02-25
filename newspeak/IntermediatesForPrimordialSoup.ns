@@ -261,7 +261,6 @@ public intermediateSlotDeclaration = (
 )
 public addMethodsTo: methods = (
     intermediateInitMethod isLazySlotMethod: true.
-    intermediateMainMethod isLazySlotMethod: true.
 	methods add: intermediateInitMethod.
 	methods add: intermediateMainMethod.
 	isMutable ifTrue: [methods add: intermediateSetterMethod]
