@@ -131,6 +131,39 @@ public checkNameConflictsForFactory: selector <Symbol> = (
 		method selector = selector ifTrue:
 			[^Error signal: 'Class already has method named ', selector]].
 )
+public assembleMethods = (
+	| assembledMethods = List new. |
+	assembledMethods addAll: methods.
+    lazySlots do: [:ls | ls addMethodsTo: assembledMethods ].
+	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
+	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
+	isMeta
+		ifTrue: [assembledMethods add: declaration factory]
+		ifFalse: [assembledMethods addAll: declaration initializers].
+	^assembledMethods
+)
+public assembleSlots = (
+	| assembledSlots = List new. |
+	assembledSlots addAll: slots.
+	lazySlots do: [:ls <IntermediateLazySlot> | ls addSlotsInto: assembledSlots ].    
+	nestedClasses do: [:nestedClass <IntermediateClassDeclaration> | nestedClass addSyntheticSlotsTo: assembledSlots].
+	^assembledSlots
+)
+public checkNameConflictsForLazySlot: selector <Symbol>  mutable: isMutable <Boolean> = (
+	nestedClasses do:
+		[:nestedClass |
+		nestedClass simpleName = selector ifTrue:
+			[^Error signal: 'Class already has nested class named ', selector]].
+	slots do:
+		[:slot |
+		  slot name = selector ifTrue: [^Error signal: 'Class already has slot named ', selector].
+         ].
+	isMutable ifFalse: [^self].  
+	methods do:
+		[:method |
+		method selector = (slotName, ':') ifTrue:
+			[^Error signal: 'Class already has method named ', method selector]].
+)
 public checkNameConflictsForMethod: selector <Symbol> = (
 	nestedClasses do:
 		[:nestedClass |
@@ -142,6 +175,12 @@ public checkNameConflictsForMethod: selector <Symbol> = (
 			[^Error signal: 'Class already has slot named ', selector].
 		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
 			[^Error signal: 'Class already has mutable slot named ', selector]].
+	lazySlots do:
+		[:slot |
+		slot name = selector ifTrue:
+			[^Error signal: 'Class already has lazy slot named ', selector].
+		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
+			[^Error signal: 'Class already has mutable lazy slot named ', selector]].            
 	isMeta ifTrue:
 		[declaration factoryName = selector ifTrue:
 			[^Error signal: 'Class already has primary factory named ', selector]].
@@ -156,6 +195,10 @@ public checkNameConflictsForNestedClass: klassName <Symbol> = (
 		[:slot |
 		slot name = klassName ifTrue:
 			[^Error signal: 'Class already has slot named ', klassName]].
+	lazySlots do:
+		[:slot |
+		slot name = klassName ifTrue:
+			[^Error signal: 'Class already has lazy slot named ', klassName]].            
 )
 public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
 	nestedClasses do:
@@ -166,29 +209,15 @@ public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean>
 		[:method |
 		method selector = slotName ifTrue:
 			[^Error signal: 'Class already has method named ', slotName]].
+	lazySlots do:
+		[:iSlot |
+		iSlot name = slotName ifTrue:
+			[^Error signal: 'Class already has lazy slot named ', slotName]].            
 	isMutable ifFalse: [^self].
 	methods do:
 		[:method |
 		method selector = (slotName, ':') ifTrue:
 			[^Error signal: 'Class already has method named ', method selector]].
-)
-public assembleSlots = (
-	| assembledSlots = List new. |
-	assembledSlots addAll: slots.
-	lazySlots do: [:ls | ls addSlotsInto: assembledSlots ].    
-	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
-	^assembledSlots
-)
-public assembleMethods = (
-	| assembledMethods = List new. |
-	assembledMethods addAll: methods.
-    lazySlots do: [:ls | ls addMethodsTo: assembledMethods ].
-	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
-	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
-	isMeta
-		ifTrue: [assembledMethods add: declaration factory]
-		ifFalse: [assembledMethods addAll: declaration initializers].
-	^assembledMethods
 )
 ) : (
 )
@@ -251,19 +280,18 @@ public source = (
 public addSlotsInto: aCollection = (
 	aCollection add: intermediateSlotDeclaration.
 )
-public intermediateSlotDeclaration = (
-	|slot|
-	slot:: IntermediateSlotDeclaration new.
-	slot name: (class slotNameForLazySlotNamed: name).
-	slot isMutable: true.
-	slot accessModifier: #private.
-	^slot.
-)
 public addMethodsTo: methods = (
     intermediateInitMethod isLazySlotMethod: true.
 	methods add: intermediateInitMethod.
 	methods add: intermediateMainMethod.
 	isMutable ifTrue: [methods add: intermediateSetterMethod]
+)
+public intermediateSlotDeclaration = (
+	| slot <IntermediateSlotDeclaration> =  IntermediateSlotDeclaration new. |
+	slot name: (class slotNameForLazySlotNamed: name).
+	slot isMutable: true.
+	slot accessModifier: #private.
+	^slot.
 )
 ) : (
 public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (

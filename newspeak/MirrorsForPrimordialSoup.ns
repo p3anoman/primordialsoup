@@ -2316,11 +2316,6 @@ public rangeFromLazySlotExpressionToMethod: aRange = (
 public setCachedValueFor: anObjectMirror <ObjectMirror> to: newValue <Object> ^<ObjectMirror> = (
 	^anObjectMirror setSlot: cacheSlotName to: newValue.
 )
-public = other = (
-	^other isKindOfLazySlotMirror
-		and: [mainMethod == other mainMethod]
-(* 		and: [reflectee == other reflectee]  *)
-)
 parseMetadata ^ <MetadataParser> = (
     |
     src <String> = source copyFrom: 1 to: (source indexOf: '=' startingAt: 1) - 1. 
@@ -2334,9 +2329,6 @@ public metadata ^ <Map[String, String]> = (
 )
 public cachedValueFor: anObjectMirror <ObjectMirror> ^ <ObjectMirror> = (
 	^anObjectMirror getSlot: cacheSlotName.
-)
-public hash ^ <Integer> = (
-	^reflectee identityHash bitXor: enclosingMixinMirror hash
 )
 private mixin ^ <Mixin> = (
 	^reflectees at: enclosingMixinMirror
@@ -2362,6 +2354,14 @@ public definingMixin ^ <MixinMirror> = (
 public source ^ <String> = (
 	^'lazy ',  accessModifier, ' ',  initMethod source, '.'.
 )
+public = other = (
+	^other isKindOfLazySlotMirror
+		and: [mainMethod == other mainMethod
+        		 and: [mainMethod == other mainMethod and: [name = other name and: [definingMixin = other definingMixin]]]]		
+)
+public hash ^ <Integer> = (
+	^(mainMethod hash bitXor: name hash) bitXor: definingMixin hash
+)
 ) : (
 public lazySlotsCategory = (
 	^#'lazyslots'
@@ -2376,6 +2376,18 @@ public source ^<String> = (
 )
 public name = (
 	^prvtIntermediate name
+)
+public accessModifer ^ <Symbol> = (
+  ^prvtIntermediate intermediateMainMethod accessModifier
+)
+public isMutable ^ <Boolean> = (
+  ^prvtIntermediate isMutable
+)
+public initMethodName = (
+	^intermediates IntermediateLazySlot initMethodNameForLazySlotNamed: name.
+)
+public definingMixin ^ <MixinBuilder> = (
+	^prvtMixinBuilder
 )
 ) : (
 )
@@ -2469,6 +2481,31 @@ public do: action = (
 		action value: (LazySlotMirror
 			reflecting: intermediateSlot name
 			in: intermediate builder)].
+)
+public removeMirrorNamed: name <Symbol> = (
+	intermediate lazySlots removeAllSuchThat:
+		[:iSlot <IntermediateLazySlot> | iSlot name = name].
+)
+public removeMirror: m <LazySlotMirror> = (
+	intermediate lazySlots removeAllSuchThat:
+		[:iSlot <IntermediateLazySlot> | iSlot name = m name].
+    m delete
+)
+public addFromSource: source <String> = (
+	|
+	iSlot <IntermediateLazySlot>
+	|
+	iSlot:: compiler
+		compileLazySlotSource: source
+		within: intermediate builder.
+
+	intermediate checkNameConflictsForLazySlot: iSlot selector.
+
+	intermediate lazySlots removeAllSuchThat:
+		[:ea | ea name = iSlot name].
+	intermediate lazySlots add: iSlot.
+
+	^LazySlotBuilder reflecting: iSlot in: intermediate builder
 )
 ) : (
 )
