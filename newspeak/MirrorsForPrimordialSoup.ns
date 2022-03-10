@@ -2296,23 +2296,6 @@ public isKindOfLazySlotMirror = (
 public name ^<Symbol> = (
 	^reflectee.
 )
-public rangeFromLazySlotExpressionToMethod: aRange = (
-	| parser tsAST methodAST returnAST offset returnSpace isReturning|
-	parser:: parsing InternalParser new.
-
-	tsAST:: parser lazySlotDecl parseString: source asString.
-
-	methodAST:: parser methodDecl parseString: initMethod getSource asString.
-	returnAST:: methodAST body statements first.
-
-	offset:: tsAST initializer start  - returnAST expression start.
-	isReturning:: (aRange first = returnAST start).
-	returnSpace:: isReturning
-				 ifTrue: [ returnAST expression start - returnAST start ]
-				 ifFalse: [0].
-
-	^(aRange first + offset + returnSpace) to: (aRange last + offset).
-)
 public setCachedValueFor: anObjectMirror <ObjectMirror> to: newValue <Object> ^<ObjectMirror> = (
 	^anObjectMirror setSlot: cacheSlotName to: newValue.
 )
@@ -2342,17 +2325,11 @@ public selectors ^ <List[Symbol]> = (
 cacheSlotName ^ <Symbol> = (
 	^intermediates IntermediateLazySlot slotNameForLazySlotNamed: name
 )
-private initMethod = (
-	^MethodMirror reflecting: (mixin _methods select: [:mtd | mtd selector = initMethodName]) first
-)
 public isMutable ^ <Boolean> = ( (* What ensures an unrelated method of this name is not created *)
   ^ (mixin _methods select: [:mtd | mtd selector = (name, ':')]) isEmpty not
 )
 public definingMixin ^ <MixinMirror> = (
 	^enclosingMixinMirror
-)
-public source ^ <String> = (
-	^'lazy ',  accessModifier, ' ',  initMethod source, '.'.
 )
 public = other = (
 	^other isKindOfLazySlotMirror
@@ -2361,6 +2338,29 @@ public = other = (
 )
 public hash ^ <Integer> = (
 	^(mainMethod hash bitXor: name hash) bitXor: definingMixin hash
+)
+public rangeFromLazySlotExpressionToMethod: aRange = (
+	| parser tsAST methodAST returnAST offset returnSpace isReturning|
+	parser:: parsing Parser new.
+
+	tsAST:: parser lazySlotDecl parseString: source asString.
+
+	methodAST:: parser methodDecl parseString: initMethod getSource asString.
+	returnAST:: methodAST body statements first.
+
+	offset:: tsAST initializer start  - returnAST expression start.
+	isReturning:: (aRange first = returnAST start).
+	returnSpace:: isReturning
+				 ifTrue: [ returnAST expression start - returnAST start ]
+				 ifFalse: [0].
+
+	^(aRange first + offset + returnSpace) to: (aRange last + offset).
+)
+private initMethod = (
+	^MethodMirror reflecting: (mixin _methods select: [:mtd <Method> | mtd name = initMethodName]) first
+)
+public source ^ <String> = (
+	^mainMethod source, '.'
 )
 ) : (
 public lazySlotsCategory = (
