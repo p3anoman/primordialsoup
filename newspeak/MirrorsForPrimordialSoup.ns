@@ -2499,7 +2499,7 @@ public addFromSource: source <String> = (
 		compileLazySlotSource: source
 		within: intermediate builder.
 
-	intermediate checkNameConflictsForLazySlot: iSlot selector.
+	intermediate checkNameConflictsForLazySlot: iSlot name mutable: iSlot isMutable.
 
 	intermediate lazySlots removeAllSuchThat:
 		[:ea | ea name = iSlot name].

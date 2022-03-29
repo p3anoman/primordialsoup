@@ -89,6 +89,9 @@ public class Exemplar usingPlatform: p = ( | List = p collections List. | ) (
 = (
 	^(Parser for: input) advanceToken parseCompilationUnit
 )
+public parseLazySlotDeclaration: input <String> ^ <SlotDefAST> = (
+	^(Parser for: input) advanceToken parseLazySlotDeclaration
+)
 ) : (
 )
 class ParseError message: m position: p 
