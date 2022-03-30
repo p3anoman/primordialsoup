@@ -280,18 +280,22 @@ public source = (
 public addSlotsInto: aCollection = (
 	aCollection add: intermediateSlotDeclaration.
 )
-public addMethodsTo: methods = (
-    intermediateInitMethod isLazySlotMethod: true.
-	methods add: intermediateInitMethod.
-	methods add: intermediateMainMethod.
-	isMutable ifTrue: [methods add: intermediateSetterMethod]
-)
 public intermediateSlotDeclaration = (
 	| slot <IntermediateSlotDeclaration> =  IntermediateSlotDeclaration new. |
 	slot name: (class slotNameForLazySlotNamed: name).
 	slot isMutable: true.
 	slot accessModifier: #private.
 	^slot.
+)
+public addMethodsTo: methods = (
+    intermediateInitMethod isLazySlotMethod: true.
+	methods add: intermediateInitMethod.
+    intermediateMainMethod isLazySlotMethod: true.    
+	methods add: intermediateMainMethod.
+	isMutable ifTrue: [
+      intermediateSetterMethod isLazySlotMethod: true.
+      methods add: intermediateSetterMethod
+      ]
 )
 ) : (
 public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
