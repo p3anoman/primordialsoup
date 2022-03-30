@@ -212,11 +212,11 @@ public checkNameConflictsForLazySlot: selector <Symbol>  mutable: isMutable <Boo
 	slots do:
 		[:slot |
 		  slot name = selector ifTrue: [^Error signal: 'Class already has slot named ', selector].
-         ].
+         ].         
 	isMutable ifFalse: [^self].  
 	methods do:
 		[:method |
-		method selector = (slot name, ':') ifTrue:
+		method selector = (selector, ':') ifTrue:
 			[^Error signal: 'Class already has method named ', method selector]].
 )
 ) : (
