@@ -2357,7 +2357,7 @@ public rangeFromLazySlotExpressionToMethod: aRange = (
 	^(aRange first + offset + returnSpace) to: (aRange last + offset).
 )
 private initMethod = (
-	^MethodMirror reflecting: (mixin _methods select: [:mtd <Method> | mtd name = initMethodName]) first
+	^MethodMirror reflecting: (mixin _methods select: [:mtd <Method> | mtd selector = initMethodName]) first
 )
 public source ^ <String> = (
 	^mainMethod source, '.'
