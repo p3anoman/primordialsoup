@@ -302,7 +302,7 @@ public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
   ^(selector, '`method') asSymbol
 )
 public slotNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
-  ^(selector, '`cacheSlot') asSymbol
+  ^(selector, '`cache`slot') asSymbol
 )
 )
 class LazySlotTag source: s <String> = (

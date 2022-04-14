@@ -1183,9 +1183,9 @@ public lazySlots = (
 	| results = List new. |
     (* Go thru raw slots *)
 	mixin _slots do:
-		[:slotDescriptor | | slotName = slotDescriptor at: 1.  i = slotName indexOf: '`cacheSlot'. | 
-          (* select slots whose name ends with `cachedSlot *)
-          (i ~= 0 and: [slotName size - 9 = i]) ifTrue: [
+		[:slotDescriptor | | slotName = slotDescriptor at: 1.  i = slotName indexOf: '`cache`slot'. | 
+          (* select slots whose name ends with `cache`slot *)
+          (i ~= 0 and: [slotName size - 10 = i]) ifTrue: [
              (* and create a mirror for them *)
 			  results add: (LazySlotMirror reflecting: (slotName copyFrom: 1 to: i -1) in: self)
               ]
@@ -2517,69 +2517,6 @@ private allocate: cls = (
 	(* :literalmessage: primitive: 34 *)
 	halt.
 )
-buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
-	| initializers = List new. |
-
-	mixin _methods do:
-		[:method |
-		|
-		selector = method selector.
-		imethod = intermediates IntermediateMethod new.
-		|
-		imethod method: method.
-		imethod methodMixin: mixin.
-		imethod selector: selector.
-		imethod accessModifier: method accessModifier.
-		imethod isSynthetic: method isSynthetic.
-		imethod source: method source.
-		(isSubinitializerSelector: selector) ifTrue:
-			[initializers add: imethod].
-		imethod isSynthetic ifFalse:
-			[i methods add: imethod]].
-
-	mixin isMeta ifTrue:
-		[ | factoryName factoryM factoryIR |
-		factoryName:: mixin _instanceMixin _primaryFactorySelector.
-		factoryM:: mixin _methods detect: [:ea | ea selector = factoryName].
-		factoryIR:: intermediates IntermediateMethod new.
-		factoryIR method: factoryM.
-		factoryIR methodMixin: mixin.
-		factoryIR selector: factoryName.
-		factoryIR accessModifier: factoryM accessModifier.
-		factoryIR isSynthetic: true.
-		i declaration factory: factoryIR.
-		^self].
-
-	i declaration initializers: initializers.
-
-	mixin _slots do:
-		[:tuple |
-		| slot = intermediates IntermediateSlotDeclaration new. |
-		slot name: (tuple at: 1).
-		slot isMutable: (tuple at: 2).
-		slot accessModifier: (tuple at: 3).
-		(isSyntheticSlotSelector: slot name) ifFalse:
-			[i slots add: slot]].
-
-	mixin _nestedMixins do:
-		[:nestedMixin <InstanceMixin> |
-		|
-		nestedIR <IntermediateClassDeclaration>
-		accessorM <Method>
-		accessorIR <IntermediateMethod>
-		|
-		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
-		i nestedClasses add: nestedIR.
-
-		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR simpleName].
-		accessorIR:: intermediates IntermediateMethod new.
-		accessorIR method: accessorM.
-		accessorIR methodMixin: mixin.
-		accessorIR selector: nestedIR simpleName.
-		accessorIR accessModifier: accessorM accessModifier.
-		accessorIR isSynthetic: true.
-		nestedIR accessor: accessorIR].
-)
 buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClassDeclaration> = (
 	| i = intermediates IntermediateClassDeclaration new. |
 	i simpleName: mixin _name.
@@ -2708,6 +2645,104 @@ private constructCompiler = (
 		newspeakParser: parsingX
 		intermediates: intermediatesX.
 	compilerX:: compilation Compiler new.
+)
+buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
+	| 
+    initializers = List new.  
+    lazySlotGetters <Map[Symbol, IntermediateMethod]> = Map new.  
+    lazySlotInits <Map[Symbol, IntermediateMethod]> = Map new. 
+    lazySlotSetters <Map[Symbol, IntermediateMethod]> = Map new.
+    |
+
+	mixin _methods do:
+		[:method <Method> |
+		|
+		selector <Symbol> = method selector.
+		imethod <IntermediateMethod> = intermediates IntermediateMethod new.
+		|
+		imethod method: method.
+		imethod methodMixin: mixin.
+		imethod selector: selector.
+		imethod accessModifier: method accessModifier.
+		imethod isSynthetic: method isSynthetic.
+		imethod source: method source.
+		(isSubinitializerSelector: selector) ifTrue:
+			[initializers add: imethod].
+        method isLazySlotMethod ifTrue: [
+          | ls <Symbol> = lazySlotNameFromMethod: method. |
+          imethod isLazySlotMethod: true.
+          selector = ls 
+            ifTrue: [lazySlotGetters at: ls put: imethod]
+            ifFalse: [(selector indexOf: '`method') ~= 0
+              ifTrue: [lazySlotInits at: ls put: imethod]  
+              ifFalse: [lazySlotSetters at: ls put: imethod.]
+              ]
+          ].
+		imethod isSynthetic ifFalse:
+			[i methods add: imethod]
+        ].
+    lazySlotGetters do: [:lg <IntermediateMethod> |
+      | 
+      lazySlot <IntermediateLazySlot> = intermediates IntermediateLazySlot new. 
+      s <Symbol> = lg selector.
+      |
+      lazySlot 
+           intermediateMainMethod: lg; 
+           intermediateInitMethod: (lazySlotInits at: s);
+           intermediateSetterMethod: (lazySlotSetters at: s ifAbsent: []). 
+       i lazySlots add: lazySlot.
+    ].
+	mixin isMeta ifTrue:
+		[ | factoryName <Symbol> factoryM <Method>  factoryIR <IntermediateMethod> |
+		factoryName:: mixin _instanceMixin _primaryFactorySelector.
+		factoryM:: mixin _methods detect: [:ea | ea selector = factoryName].
+		factoryIR:: intermediates IntermediateMethod new.
+		factoryIR method: factoryM.
+		factoryIR methodMixin: mixin.
+		factoryIR selector: factoryName.
+		factoryIR accessModifier: factoryM accessModifier.
+		factoryIR isSynthetic: true.
+		i declaration factory: factoryIR.
+		^self].
+
+	i declaration initializers: initializers.
+
+	mixin _slots do:
+		[:tuple <{Symbol. Boolean. Symbol}> |
+		| slot <IntermediateSlotDeclaration> = intermediates IntermediateSlotDeclaration new. |
+		slot name: (tuple at: 1).
+		slot isMutable: (tuple at: 2).
+		slot accessModifier: (tuple at: 3).
+		(isSyntheticSlotSelector: slot name) ifFalse:
+			[i slots add: slot]].
+
+	mixin _nestedMixins do:
+		[:nestedMixin <InstanceMixin> |
+		|
+		nestedIR <IntermediateClassDeclaration>
+		accessorM <Method>
+		accessorIR <IntermediateMethod>
+		|
+		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
+		i nestedClasses add: nestedIR.
+
+		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR simpleName].
+		accessorIR:: intermediates IntermediateMethod new.
+		accessorIR method: accessorM.
+		accessorIR methodMixin: mixin.
+		accessorIR selector: nestedIR simpleName.
+		accessorIR accessModifier: accessorM accessModifier.
+		accessorIR isSynthetic: true.
+		nestedIR accessor: accessorIR].
+)
+lazySlotNameFromMethod: m <Method> ^ <Symbol> = (
+  | i <Integer> = m selector indexOf: '`'. j <Integer> = m selector indexOf: ':'. |
+  assert: m isLazySlotMethod message: 'Attempt to view non-lazy slot method ', m selector, ' as lazy slot method'.
+  j = 0 ifTrue: [
+    i = 0 ifTrue: [^m selector].
+    ^m selector copyFrom: 1 to: i - 1
+    ].
+  ^m selector copyFrom: 1 to: j -1.
 )
 ) : (
 )
