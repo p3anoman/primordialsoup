@@ -204,8 +204,8 @@ public stepThrough ^<ThreadMirror> = (
 	thread stepThrough: reflectee.
 	^ThreadMirror reflecting: thread
 )
-private computeDebugInfo = (
-	| rawMethod = reflectee method. metadata = rawMethod metadata. definingMixin |
+private computeDebugInfo ^ <DebugInfo> = (
+	| rawMethod <Method>  = reflectee method. metadata <String | LazySlotTag | DebugInfo | Nil> = rawMethod metadata. definingMixin <Mixin>  |
 
 	(* Expression *)
 	metadata isKindOfDebugInfo ifTrue:
@@ -214,8 +214,9 @@ private computeDebugInfo = (
 	(* Regular method *)
 	reflectee method isSynthetic ifFalse:
 		[^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
-
-    reflectee method is isLazySlotMethod ifTrue: [^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
+   (* Lazy slot method *)
+    reflectee method is isLazySlotMethod ifTrue: [^(compiler compileLazySlotSource: reflectee method source within: method definingMixin) debugInfo].
+    (* Other synthetic methods *)
 	definingMixin:: rawMethod mixin.
 	definingMixin isMeta ifFalse:
 		[(* Nested class accessor *)

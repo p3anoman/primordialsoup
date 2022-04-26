@@ -297,6 +297,10 @@ public addMethodsTo: methods = (
       methods add: intermediateSetterMethod
       ]
 )
+public debugInfo ^ <DebugInfo> = (
+(* If we want to debug, we'll be debugging the init expression *)
+  ^intermediateInitMethod debugInfo
+)
 ) : (
 public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
   ^(selector, '`method') asSymbol

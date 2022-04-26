@@ -1390,7 +1390,7 @@ public literals <Array> (* Must be slot 2, known to the VM. *)
 public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
 public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
-public metadata <String>
+public metadata <String | LazySlotTag | DebugInfo | Nil>
 |) (
 public isPrivate ^<Boolean> = (
 	^#private = accessModifier

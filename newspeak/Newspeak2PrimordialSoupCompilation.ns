@@ -1025,23 +1025,6 @@ public loopNode: node <LoopAST> = (
 public methodLocalReturnNode: node <MethodLocalReturnAST> = (
 	^self returnStatNode: node
 )
-public methodNode: node <MethodAST> = (
-	(* Create a compiled method, whose body is the result of compiling the node's body. *)
-	| result <IntermediateMethod> |
-	setup.
-	cgen
-		maxLocals: 0;
-		accessModifier: node accessModifier;
-		methodName: node pattern selector;
-		argCount: node pattern parameters size;
-		literals: literalArray.
-	self applyForEffectTo: node body.
-	cgen code debugInfo: debugInfo. (* set debug info *)
-	processLiteralMessagesOf: node.
-	result:: cgen close.
-	cleanup.
-	^result
-)
 public mixinNode: node = (
 	valueExpected ifFalse: [^self].
 	cgen pushMixin.
@@ -1141,6 +1124,23 @@ public symbolNode: node <SymbolAST> = (
 	valueExpected ifFalse: [^self].
 	addDebugInfo: node.
 	cgen pushLiteral: node value.
+)
+public methodNode: node <MethodAST> ^ <IntermediateMethod> = (
+	(* Create a compiled method, whose body is the result of compiling the node's body. *)
+	| result <IntermediateMethod> |
+	setup.
+	cgen
+		maxLocals: 0;
+		accessModifier: node accessModifier;
+		methodName: node pattern selector;
+		argCount: node pattern parameters size;
+		literals: literalArray.
+	self applyForEffectTo: node body.
+	cgen code debugInfo: debugInfo. (* set debug info *)
+	processLiteralMessagesOf: node.
+	result:: cgen close.
+	cleanup.
+	^result
 )
 ) : (
 )
@@ -2729,45 +2729,6 @@ simpleName = (
 			statements: stmts);
 		copyPositionFrom: tree
 )
-private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <SlotDefAST> = (
-	| intermediateLS treeMainMethod mixinIR name initMethod mainMethod category source |
-
-	category:: #'lazyslots'.
-	mixinIR: enclosingIR.
-	name: tree name.
-	intermediateLS:: IntermediateLazySlot new.
-	source:: sourceForNode: tree.
-
-	(* cache slot is created by IntermediateLazySlot *)
-
-	(* init method *)
-	 astForLazySlotInitializer: tree do:
-		[:treeInitMethod :newSource |
-		initMethod:: compileMethod: treeInitMethod.
-		initMethod isSynthetic: true.
-		initMethod category: category.
-		initMethod source: newSource.
-		intermediateLS intermediateInitMethod: initMethod].
-
-	(* main method  *)
-	treeMainMethod:: astForLazySlotGetter: tree.
-	mainMethod:: compileMethod: treeMainMethod.
-	mainMethod isSynthetic: true.
-	mainMethod category: category.
-	mainMethod source: source.
-	intermediateLS intermediateMainMethod: mainMethod.
-
-	(* setter Method*)
-	tree isMutable ifTrue:
-		[ | treeSetterMethod setterMethod |
-		treeSetterMethod:: astForLazySlotSetter: tree.
-		setterMethod:: compileMethod: treeSetterMethod.
-		setterMethod isSynthetic: true.
-		setterMethod category: category.
-		intermediateLS intermediateSetterMethod: setterMethod].
-
-	^intermediateLS
-)
 astForLazySlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
 	| 
     initializer 
@@ -2811,6 +2772,52 @@ astForLazySlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST 
 
     newSource:: selector, binding, (sourceForNode: initializer).
 	astAndSourceBlock value: newAST value: newSource.
+)
+private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <SlotDefAST> ^ <IntermediateLazySlot> = (
+	| 
+    intermediateLS <IntermediateLazySlot> 
+    treeMainMethod <SlotDefAST>
+    mixinIR <IntermediateMixin>
+    initMethod <IntermediateMethod>  
+    mainMethod <IntermediateMethod>
+    category <Symbol>
+    source <String> 
+    |
+
+	category:: #'lazyslots'.
+	mixinIR: enclosingIR.
+	intermediateLS:: IntermediateLazySlot new.
+	source:: sourceForNode: tree.
+
+	(* cache slot is created by IntermediateLazySlot *)
+
+	(* init method *)
+	 astForLazySlotInitializer: tree do:
+		[:treeInitMethod :newSource |
+		initMethod:: compileMethod: treeInitMethod.
+		initMethod isSynthetic: true.
+		initMethod category: category.
+		initMethod source: newSource.
+		intermediateLS intermediateInitMethod: initMethod].
+
+	(* main method  *)
+	treeMainMethod:: astForLazySlotGetter: tree.
+	mainMethod:: compileMethod: treeMainMethod.
+	mainMethod isSynthetic: true.
+	mainMethod category: category.
+	mainMethod source: source.
+	intermediateLS intermediateMainMethod: mainMethod.
+
+	(* setter Method*)
+	tree isMutable ifTrue:
+		[ | treeSetterMethod setterMethod |
+		treeSetterMethod:: astForLazySlotSetter: tree.
+		setterMethod:: compileMethod: treeSetterMethod.
+		setterMethod isSynthetic: true.
+		setterMethod category: category.
+		intermediateLS intermediateSetterMethod: setterMethod].
+
+	^intermediateLS
 )
 ) : (
 )
