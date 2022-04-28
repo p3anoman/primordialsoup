@@ -84,18 +84,6 @@ public printString ^<String> = (
 	self isUndefined ifTrue: [^'undefined']. (* undefined.toString() throws in JS *)
 	^self perform: #toString withArguments: {}
 )
-private pushExpat: closure = (
-	| expatIndex |
-	expatIndex:: nextExpatIndex.
-	nextExpatIndex:: 1 + expatIndex.
-	handleMap at: expatIndex put:
-		[:status :pending |
-		| arguments = Array new: status. |
-		status to: 1 by: -1 do:
-			[:argumentIndex | arguments at: argumentIndex put: rawPop].
-		rawPush: (closure valueWithArguments: arguments)].
-	rawPushExpat: expatIndex.
-)
 private rawPerformCall: numArgs = (
 	(* :literalmessage: primitive: 163 *)
 	^Error signal: rawPop printString
@@ -157,7 +145,19 @@ public isKindOfJSAlien ^ <Boolean> = (
 	^true
 )
 public isKindOfImage ^ <Boolean> = (
-  ^'IMG' = (at: 'tagName')
+  ^instanceOf: (global at: #HTMLImageElement)
+)
+private pushExpat: closure <[:Object]> = (
+	| expatIndex <Integer> |
+	expatIndex:: nextExpatIndex.
+	nextExpatIndex:: 1 + expatIndex.
+	handleMap at: expatIndex put:
+		[:status :pending |
+		| arguments = Array new: status. |
+		status to: 1 by: -1 do:
+			[:argumentIndex | arguments at: argumentIndex put: rawPop].
+		rawPush: (closure valueWithArguments: arguments)].
+	rawPushExpat: expatIndex.
 )
 ) : (
 )
