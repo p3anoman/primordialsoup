@@ -2805,7 +2805,7 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
 	mainMethod:: compileMethod: treeMainMethod.
 	mainMethod isSynthetic: true.
 	mainMethod category: category.
-	mainMethod source: source.
+	mainMethod source: source, '.'.
 	intermediateLS intermediateMainMethod: mainMethod.
 
 	(* setter Method*)

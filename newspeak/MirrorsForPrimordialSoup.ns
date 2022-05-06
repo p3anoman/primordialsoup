@@ -106,7 +106,10 @@ public method ^<MethorMirror> = (
 
 	(* Regular method / expression *)
 	rawMethod isSynthetic ifFalse:
-		[^MethodMirror reflecting: rawMethod].
+		  [^MethodMirror reflecting: rawMethod].
+
+	rawMethod isLazySlotMethod ifTrue:
+		  [^MethodMirror reflecting: rawMethod].		    
 
 	(* :todo: These tests are complicated, and might also be wrong if the mixin was changed after this activation. Consider saving the relevant InstanceMixin in the synthetic method's metadata slot in the original compile instead. *)
 	definingMixin:: rawMethod mixin.
@@ -215,7 +218,7 @@ private computeDebugInfo ^ <DebugInfo> = (
 	reflectee method isSynthetic ifFalse:
 		[^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
    (* Lazy slot method *)
-    reflectee method is isLazySlotMethod ifTrue: [^(compiler compileLazySlotSource: reflectee method source within: method definingMixin) debugInfo].
+    reflectee method isLazySlotMethod ifTrue: [^(compiler compileLazySlotSource: reflectee method source within: method definingMixin) debugInfo].
     (* Other synthetic methods *)
 	definingMixin:: rawMethod mixin.
 	definingMixin isMeta ifFalse:
@@ -1380,12 +1383,18 @@ public performPublic: selector <String> with: args <Array[Object]> ^ <ObjectMirr
 	| msg <Message> = Message selector: selector arguments: args.  |
 	^msg sendTo: reflectee
 )
+selectMethodToSuspend: selector <String> ^ <Method>  = (
+  | 
+  klass <ClassMirror> = getClass. 
+  m <MethodMirror> = klass methods 
+       detect: [:m <MethodMirror> | selector = m name]
+       ifNone: [(klass lazySlots detect: [:ls <LazySlotMirror> | selector = ls name]) mainMethod].
+  |
+  ^reflectees at: m
+)
 public sendSuspended: selector <String> with: args <List[Object]> ^ <ThreadMirror> = (
 	|
-	selectedMethod <Method> =
-	  reflectees at: (getClass methods detect: [:m <MethodMirror> |
-	    selector = m name 
-	  ]).
+	selectedMethod <Method> = selectMethodToSuspend: selector.
 	thread <Thread> = Thread new.
 	simulator <Simulator> = Simulator new.
 	|
@@ -2361,7 +2370,7 @@ private initMethod = (
 	^MethodMirror reflecting: (mixin _methods select: [:mtd <Method> | mtd selector = initMethodName]) first
 )
 public source ^ <String> = (
-	^mainMethod source, '.'
+	^mainMethod source
 )
 ) : (
 public lazySlotsCategory = (
