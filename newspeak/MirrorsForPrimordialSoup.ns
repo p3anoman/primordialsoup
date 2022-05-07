@@ -2564,7 +2564,7 @@ private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Ob
 	(* :literalmessage: primitive: 78 *)
 	halt.
 )
-private currentActivation ^<Activation> = (
+private currentActivation ^<Activation> (* :no_exemplars: *) = (
 	(* :literalmessage: primitive: 133 *)
 	halt.
 )
