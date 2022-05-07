@@ -1406,6 +1406,14 @@ public sendSuspended: selector <String> with: args <List[Object]> ^ <ThreadMirro
 
 	^ThreadMirror reflecting: thread
 )
+public getLazySlot: name = (
+	| 
+    rawName = intermediatesX IntermediateLazySlot slotNameForLazySlotNamed: name.
+	index = indexOfSlotNamed: rawName in: (classOf: reflectee).
+	raw =  slotOf: reflectee at: index.
+    |
+	^ObjectMirror reflecting: raw
+)
 ) : (
 )
 private class Simulator = (|
