@@ -2349,14 +2349,6 @@ public isMutable ^ <Boolean> = ( (* What ensures an unrelated method of this nam
 public definingMixin ^ <MixinMirror> = (
 	^enclosingMixinMirror
 )
-public = other = (
-	^other isKindOfLazySlotMirror
-		and: [mainMethod == other mainMethod
-        		 and: [mainMethod == other mainMethod and: [name = other name and: [definingMixin = other definingMixin]]]]		
-)
-public hash ^ <Integer> = (
-	^(mainMethod hash bitXor: name hash) bitXor: definingMixin hash
-)
 public rangeFromLazySlotExpressionToMethod: aRange = (
 	| parser tsAST methodAST returnAST offset returnSpace isReturning|
 	parser:: parsing Parser new.
@@ -2379,6 +2371,13 @@ private initMethod = (
 )
 public source ^ <String> = (
 	^mainMethod source
+)
+public hash ^ <Integer> = (
+	^mainMethod hash
+)
+public = other = (
+	^other isKindOfLazySlotMirror
+		and: [mainMethod = other mainMethod]
 )
 ) : (
 public lazySlotsCategory = (
