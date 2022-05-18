@@ -600,18 +600,6 @@ public source ^<String> = (
 	to: sb writeClassDeclaration: intermediate.
 	^sb asString
 )
-private to: sb writeClassDeclaration: declIR = (
-	sb add: declIR headerSource.
-	sb writeln: ' ('.
-	declIR instanceSide nestedClasses do:
-		[:nestedIR | to: sb writeClassDeclaration: nestedIR].
-	declIR instanceSide methods do:
-		[:method | sb writeln: method source].
-	sb writeln: ') : ('.
-	declIR classSide methods do:
-		[:method | sb writeln: method source].
-	sb writeln: ')'.
-)
 ensureIRForToplevel = (
 (* The enclosing IR is computed lazily. Proior to installation, we need to be sure it exists all the way to the top level *)
 	| outermost |
@@ -629,6 +617,20 @@ public install ^<ClassDeclarationMirror> = (
 	installer install: {outermost}.
 	nil = intermediate existingMixin ifTrue: [halt].
 	^ClassDeclarationMirror reflecting: intermediate existingMixin
+)
+private to: sb writeClassDeclaration: declIR = (
+	sb add: declIR headerSource.
+	sb writeln: ' ('.
+    declIR instanceSide lazySlots do:
+		[:lazySlot | sb writeln: lazySlot source].
+	declIR instanceSide nestedClasses do:
+		[:nestedIR | to: sb writeClassDeclaration: nestedIR].
+	declIR instanceSide methods do:
+		[:method | sb writeln: method source].
+	sb writeln: ') : ('.
+	declIR classSide methods do:
+		[:method | sb writeln: method source].
+	sb writeln: ')'.
 )
 ) : (
 public fromSource: source <String> ^<ClassDeclarationBuilder> = (
@@ -714,6 +716,8 @@ public source ^<String> = (
 private to: sb writeClassDeclaration: instanceMixin = (
 	sb add: instanceMixin _headerSource.
 	sb writeln: ' ('.
+    instanceSide lazySlots do:
+		[:lazySlot | sb writeln: lazySlot source].
 	instanceMixin _nestedMixins do:
 		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
 	instanceMixin _methods do:
