@@ -624,20 +624,6 @@ public parseMethodDeclarationEnd = (
 	tokenKind = #end ifFalse: [expected: 'end of input'].
 	^result
 )
-public parseParameterDeclaration = (
-	| varStart varEnd varName type result |
-	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	varStart:: tokenStart.
-	varEnd:: tokenEnd.
-	varName:: tokenValue asSymbol.
-	advanceToken.
-
-	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
-		[type:: parseType].
-
-	^(VarDeclAST name: varName type: type)
-		start: varStart; end: varEnd.
-)
 public parseParenthesizedExpression = (
 	(* parenthesizedExpression = lparen, expression, rparen. *)
 	| start result |
@@ -693,55 +679,10 @@ public parseReturnStatement = (
 		expression: expression;
 		start: statementStart; end: expression end
 )
-public parseReturnType = (
-	tokenKind = '^' ifFalse: [expected: '^'].
-	advanceToken.
-	^parseType
-)
 public parseSendExpression = (
 	(* sendExpression = keywordHereSend | cascadedMessageExpression. *)
 	peekHasKeywordMessage ifTrue: [^parseKeywordHereSend].
 	^parseCascadedMessageExpression
-)
-public parseSlotDeclaration = (
-	(* slotDef = accessModifier opt, slotDecl,
-		(((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) opt. *)
-	| declStart am varStart varEnd varName type var init |
-	declStart:: tokenStart.
-	am:: parseAccessModifierOpt.
-	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	varStart:: tokenStart.
-	varEnd:: tokenEnd.
-	varName:: tokenValue asSymbol.
-	advanceToken.
-	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
-		[type: parseType].
-	var:: (VarDeclAST name: varName type: type)
-		start: varStart; end: varEnd.
-
-	tokenKind = #'::=' ifTrue:
-		[advanceToken.
-		 init:: parseSlotInitializer.
-		 ^MutableSlotDefAST new
-			accessModifier: am;
-			slotDecl: var;
-			initializer: init;
-			start: declStart; end: init end].
-
-	(tokenKind = #binary and: [tokenValue = '=']) ifTrue:
-		[advanceToken.
-		 init:: parseSlotInitializer.
-		 ^ImmutableSlotDefAST new
-			accessModifier: am;
-			slotDecl: var;
-			initializer: init;
-			start: declStart; end: init end].
-
-	^MutableSlotDefAST new
-		accessModifier: am;
-		slotDecl: var;
-		initializer: nil;
-		start: declStart; end: tokenEnd
 )
 public parseSlotInitializer = (
 	(* slotDef = accessModifier opt, slotDecl,
@@ -1098,18 +1039,6 @@ public parseTypePrimary = (
 	                         start: start;
 	                         end: end
 )
-public parseType = (
-    | type |
-
-    (tokenKind = #binary and: [tokenValue = '<']) ifFalse: [expected: '<'].
-    advanceToken.
-    type:: parseTypeExpr.
-    (tokenKind = #binary and: [tokenValue = '>']) ifTrue: [
-          advanceToken. 
-          ^type
-        ].
-    expected: '>'
-)
 public parseBlockType = (
        (* blockType = lbracket, (nonEmptyBlockArgList | blockReturnType opt), rbracket *)
        | blockStart blockEnd blockArgs ::= List new. blockReturn |
@@ -1143,6 +1072,30 @@ peekHasLazyModifier = (
 	tokenKind = #identifier ifFalse: [^false].
 	tokenValue = #lazy ifTrue: [^true].
 	^false
+)
+public parseInstanceSide = (
+	(* sideDecl = lparen, classDecl star, lazySlotDecl star, methodDecl star, rparen. *)
+
+	| nestedClasses = List new. lazySlots = List new. methods = List new. member |
+
+	(tokenKind = #'(') ifFalse: [expected: '('].
+	advanceToken.
+
+	[peekHasClassDeclaration] whileTrue:
+		[nestedClasses add: parseClassDeclaration].
+
+	[peekHasLazyModifier] whileTrue:
+		[lazySlots add: parseLazySlotDeclaration].
+        
+	[tokenKind = #')'] whileFalse:
+		[methods add: parseMethodDeclaration].
+
+	advanceToken. (* Consume ) *)
+
+	^SideAST new
+		lazySlots: lazySlots;
+		nestedClasses: nestedClasses;
+		methods: methods
 )
 public parseLazySlotDeclaration = (
 	(* lazySlotDecl = lazyModifier, accessModifier opt, slotDecl,
@@ -1189,29 +1142,83 @@ public parseLazySlotDeclaration = (
 		initializer: nil;
 		start: declStart; end: tokenEnd
 )
-public parseInstanceSide = (
-	(* sideDecl = lparen, classDecl star, lazySlotDecl star, methodDecl star, rparen. *)
-
-	| nestedClasses = List new. lazySlots = List new. methods = List new. member |
-
-	(tokenKind = #'(') ifFalse: [expected: '('].
+public parseReturnType = (
+	tokenKind = '^' ifFalse: [expected: '^'].
+	advanceToken.
+	^parseType
+)
+public parseParameterDeclaration = (
+	| varStart varEnd varName type result |
+	tokenKind = #identifier ifFalse: [expected: 'identifier'].
+	varStart:: tokenStart.
+	varEnd:: tokenEnd.
+	varName:: tokenValue asSymbol.
 	advanceToken.
 
-	[peekHasClassDeclaration] whileTrue:
-		[nestedClasses add: parseClassDeclaration].
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
+		[type:: parseType].
 
-	[peekHasLazyModifier] whileTrue:
-		[lazySlots add: parseLazySlotDeclaration].
-        
-	[tokenKind = #')'] whileFalse:
-		[methods add: parseMethodDeclaration].
+	^(VarDeclAST name: varName type: type)
+		start: varStart; end: varEnd.
+)
+public parseSlotDeclaration = (
+	(* slotDef = accessModifier opt, slotDecl,
+		(((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) opt. *)
+	| declStart am varStart varEnd varName type var init |
+	declStart:: tokenStart.
+	am:: parseAccessModifierOpt.
+	tokenKind = #identifier ifFalse: [expected: 'identifier'].
+	varStart:: tokenStart.
+	varEnd:: tokenEnd.
+	varName:: tokenValue asSymbol.
+	advanceToken.
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
+		[type: parseType].
+	var:: (VarDeclAST name: varName type: type)
+		start: varStart; end: varEnd.
 
-	advanceToken. (* Consume ) *)
+	tokenKind = #'::=' ifTrue:
+		[advanceToken.
+		 init:: parseSlotInitializer.
+		 ^MutableSlotDefAST new
+			accessModifier: am;
+			slotDecl: var;
+			initializer: init;
+			start: declStart; end: init end].
 
-	^SideAST new
-		lazySlots: lazySlots;
-		nestedClasses: nestedClasses;
-		methods: methods
+	(tokenKind = #binary and: [tokenValue = '=']) ifTrue:
+		[advanceToken.
+		 init:: parseSlotInitializer.
+		 ^ImmutableSlotDefAST new
+			accessModifier: am;
+			slotDecl: var;
+			initializer: init;
+			start: declStart; end: init end].
+
+	^MutableSlotDefAST new
+		accessModifier: am;
+		slotDecl: var;
+		initializer: nil;
+		start: declStart; end: tokenEnd
+)
+public parseType = (
+    | type |
+
+    (tokenKind = #binary and: [tokenValue = '<']) ifFalse: [expected: '<'].
+    advanceToken.
+    type:: parseTypeExpr.
+    tokenKind = #binary ifTrue: [
+      tokenValue = '>' ifTrue: [
+          advanceToken. 
+          ^type
+        ].
+      tokenValue = '>=' ifTrue: [
+         (* Gross beyond measure. Don't advance the token, but pretend we are now at the '=' following the '>'. *)
+          tokenValue:: '='. 
+          ^type
+        ]
+    ].
+    expected: '>'
 )
 ) : (
 )
