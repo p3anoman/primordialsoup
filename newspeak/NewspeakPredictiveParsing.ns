@@ -693,30 +693,6 @@ public parseSlotInitializer = (
 	advanceToken.
 	^result
 )
-public parseStatements = (
-	(*
-	furtherStatements = dot, statements.
-	statementSequence = expression, furtherStatements  opt.
- 	statements = returnStatement | statementSequence | empty.
-	*)
-	| statements = List new. |
-
-	[tokenKind = #'^' ifTrue:
-		[statements add: parseReturnStatement.
-		 ^statements].
-
-	 (* ~FIRST(EXPRESSION) *)
-	 tokenKind = #']' ifTrue: [^statements].
-	 tokenKind = #')' ifTrue: [^statements].
-	 tokenKind = #'}' ifTrue: [^statements].
-	 tokenKind = #'.' ifTrue: [^statements].
-	 tokenKind = #':' ifTrue: [^statements].
-	 tokenKind = #';' ifTrue: [^statements].
-	 tokenKind = #end ifTrue: [^statements].
-
-	 statements add: parseExpression.
-	 tokenKind = #'.' ifTrue: [advanceToken]] repeat.
-)
 public parseSuperclassClause = (
 	(* superclassClause = superclassPrefix opt, identifier, message opt.
 		outerReceiver = (tokenFromSymbol: #outer), identifier.
@@ -1219,6 +1195,31 @@ public parseType = (
         ]
     ].
     expected: '>'
+)
+public parseStatements = (
+	(*
+	furtherStatements = dot, statements.
+	statementSequence = expression, furtherStatements  opt.
+ 	statements = returnStatement | statementSequence | empty.
+	*)
+	| statements = List new. |
+
+	[tokenKind = #'^' ifTrue:
+		[statements add: parseReturnStatement.
+		 ^statements].
+
+	 (* ~FIRST(EXPRESSION) *)
+	 tokenKind = #']' ifTrue: [^statements].
+	 tokenKind = #')' ifTrue: [^statements].
+	 tokenKind = #'}' ifTrue: [^statements].
+	 tokenKind = #'.' ifTrue: [^statements].
+	 tokenKind = #':' ifTrue: [^statements].
+	 tokenKind = #';' ifTrue: [^statements].
+	 tokenKind = #end ifTrue: [^statements].
+
+	 statements add: parseExpression.
+     tokenKind = #'.' ifFalse: [^statements].
+	 advanceToken] repeat.
 )
 ) : (
 )
