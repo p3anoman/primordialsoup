@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class JSON usingPlatform: platform = (|
 private ArgumentError = platform kernel ArgumentError.
 private StringBuilder = platform kernel StringBuilder.
@@ -127,28 +127,6 @@ parseNumber= (
 	result:: result * parseOptionalExponent.
 	^neg ifTrue: [-1 * result] ifFalse: [result]
 )
-parseOptionalExponent = (
-	(* ((e|E) (+|-)? digit+) *)
-	| byte neg exp |
-	position <= size ifFalse: [^1].
-	16r45 = (string at: position) ifFalse:
-		[16r65 = (string at: position) ifFalse: [^1]].
-	position:: 1 + position.
-	position <= size ifFalse: [error: 'number expected'].
-	byte:: string at: position.
-	16r2B = byte ifTrue: [position:: 1 + position].
-	(neg:: 16r2D = byte) ifTrue: [position:: 1 + position].
-	position <= size ifFalse: [error: 'number expected'].
-	byte:: string at: position.
-	(isDigit: byte) ifFalse: [error: 'number expected'].
-	exp:: 0.
-	[position <= size and: [isDigit: (byte:: string at: position)]]
-		whileTrue:
-			[exp:: exp * 10 + (byte - 48).
-			 position:: position + 1].
-	neg ifTrue: [exp:: -1 * exp].
-	^10 raisedTo: exp
-)
 parseOptionalFraction = (
 	(* ("." digit+) *)
 	| num denom byte |
@@ -223,6 +201,28 @@ public parseValue = (
 skipWhitespace = (
 	[position <= string size and: [isWhitespace: (string at: position)]]
 			whileTrue: [position:: 1 + position].
+)
+parseOptionalExponent = (
+	(* ((e|E) (+|-)? digit+) *)
+	| byte neg exp |
+	position <= size ifFalse: [^1].
+	16r45 = (string at: position) ifFalse:
+		[16r65 = (string at: position) ifFalse: [^1]].
+	position:: 1 + position.
+	position <= size ifFalse: [error: 'number expected'].
+	byte:: string at: position.
+	16r2B = byte ifTrue: [position:: 1 + position].
+	(neg:: 16r2D = byte) ifTrue: [position:: 1 + position].
+	position <= size ifFalse: [error: 'number expected'].
+	byte:: string at: position.
+	(isDigit: byte) ifFalse: [error: 'number expected'].
+	exp:: 0.
+	[position <= size and: [isDigit: (byte:: string at: position)]]
+		whileTrue:
+			[exp:: exp * 10 + (byte - 48).
+			 position:: position + 1].
+	neg ifTrue: [exp:: -1 * exp].
+	^10 ** exp
 )
 ) : (
 )
