@@ -458,7 +458,7 @@ public whileTrue: action = (
 private numArgsError: argsProvided = (
 	(* :bogus: *)
     | msg  = 
-      'Closure has ', numArgs printString, ' parameters, but was called with ', argsProvided printString, ' arguments'.
+      'Closure ', printString, ' has ', numArgs printString, ' parameters, but was called with ', argsProvided printString, ' arguments'.
     |
     msg out.
 	^(ArgumentError value: self) signal
