@@ -101,6 +101,7 @@ class ParseError message: m position: p
 	message <String> = m.
 	position <Integer> = p.
 	|
+    messageText:: message.
 ) (
 public printString = (
 	^'ParseError: ' , message , ' at position ' , position asString
