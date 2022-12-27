@@ -41,5 +41,8 @@ public garbageCollect = (
 public Proxy = (
   ^internalKernel Proxy
 )
+public ultimateExceptionHandler: h = (
+  internalKernel ultimateExceptionHandler: h
+)
 ) : (
 )

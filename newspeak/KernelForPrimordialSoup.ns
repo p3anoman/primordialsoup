@@ -4,6 +4,7 @@ class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
+private handlerOfLastResort <[:Exception :Activation]>
 |) (
 public class Activation _cannotInstantiate = (
 (* A reified activation record.
@@ -579,23 +580,6 @@ private signalActivation <Activation>
 private handlerActivation <Activation>
 public messageText (* squeak compatibility for Minitest *)
 |) (
-private invokeNextHandler = (
-	| activation <Activation> |
-
-	activation:: handlerActivation sender.
-	[nil = activation] whileFalse:
-		[activation method primitive = 142 ifTrue:
-			[returnToSimulationRoot: activation.
-			 halt].
-		 activation method primitive = 116 ifTrue:
-			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
-				[(activation tempAt: 3) ifTrue:
-					[^invokeOnDoHandler: activation]]].
-		 activation:: activation sender].
-
-	messageLoop unhandledException: self from: signalActivation sender.
-	halt.
-)
 private invokeOnDoHandler: handler <Activation> = (
 	| handlerResult |
 	handler tempAt: 3 put: false. (* handlerActive:: false. *)
@@ -606,13 +590,6 @@ private invokeOnDoHandler: handler <Activation> = (
 	signalActivation:: nil.
 	handlerActivation:: nil.
 	^handler return: handlerResult
-)
-private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Behavior> = (
-	| cls ::= signaledExceptionClass. |
-	[nil = cls] whileFalse:
-		[(mixinOf: cls) = (mixinOf: handlerExceptionClass) ifTrue: [^true].
-		cls:: (superclassOf: cls)].
-	^false
 )
 private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
@@ -670,6 +647,41 @@ public signal: message <String> = (
 	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
+)
+private is: handlerExceptionClass <Behavior> interestedIn: signaledExceptionClass <Behavior> = (
+	| cls ::= signaledExceptionClass. |
+	[nil = cls] whileFalse:
+		[(mixinOf: cls) = (mixinOf: handlerExceptionClass) ifTrue: [^true].
+		cls:: (superclassOf: cls)].
+	^false
+)
+private finish: wakeup = (
+	(* :literalmessage: primitive: 139 *)
+	halt.
+)
+private invokeNextHandler = (
+	| activation <Activation> |
+
+	activation:: handlerActivation sender.
+    (* Climb down the stack *)
+	[nil = activation] whileFalse:
+		[activation method primitive = 142 ifTrue:
+			[returnToSimulationRoot: activation.
+			 halt].
+         (* We have a call to #on:do:. Note: #on:do: is not really a primitive; primitive 116 always fails when called, so the Newspeak  code in Closure>>on:do: is executed. The only purpose of having the primitive is to make it easy to identify on:do: here. *)
+		 activation method primitive = 116 ifTrue:
+            (* The handler is for this exception class (temp 1 is the 1st argument - the exception class passed to #on:do: ) *)
+			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
+                (* the #on:do: handler is active (temp 3 is the local slot in #on:do:, which is the handlerActive flag) *)
+				[(activation tempAt: 3) ifTrue:
+                    (* invoke the handler *)
+					[^invokeOnDoHandler: activation]]].
+		 activation:: activation sender].
+					  (* No relevant handler on the stack; an unhandled exception *)
+    ('About to call ultimate handler which is ', handlerOfLastResort printString) out.
+    handlerOfLastResort isNil ifFalse: [finish: (handlerOfLastResort value: self value: signalActivation sender)].
+	messageLoop unhandledException: self from: signalActivation sender.
+	halt.
 )
 ) : (
 public signal: message <String> = (
@@ -2323,6 +2335,9 @@ public ~= other <Object> ^<Boolean> = (
 	^(self = other) not.
 )
 ) : (
+)
+public ultimateExceptionHandler: h <[:Exception :Activation]> = (
+  handlerOfLastResort:: h
 )
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.
