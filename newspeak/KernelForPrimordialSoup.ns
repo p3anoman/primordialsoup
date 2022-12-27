@@ -4,7 +4,6 @@ class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
-private handlerOfLastResort <[:Exception :Activation]>
 |) (
 public class Activation _cannotInstantiate = (
 (* A reified activation record.
@@ -677,9 +676,7 @@ private invokeNextHandler = (
                     (* invoke the handler *)
 					[^invokeOnDoHandler: activation]]].
 		 activation:: activation sender].
-					  (* No relevant handler on the stack; an unhandled exception *)
-    ('About to call ultimate handler which is ', handlerOfLastResort printString) out.
-    handlerOfLastResort isNil ifFalse: [finish: (handlerOfLastResort value: self value: signalActivation sender)].
+					  (* No relevant handler on the stack; an unhandled exception (may still use handler of last resort) *)
 	messageLoop unhandledException: self from: signalActivation sender.
 	halt.
 )
@@ -2335,9 +2332,6 @@ public ~= other <Object> ^<Boolean> = (
 	^(self = other) not.
 )
 ) : (
-)
-public ultimateExceptionHandler: h <[:Exception :Activation]> = (
-  handlerOfLastResort:: h
 )
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.

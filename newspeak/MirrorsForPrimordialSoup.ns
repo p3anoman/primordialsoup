@@ -257,13 +257,9 @@ public invokeSuspended: closure <[]> ^ <ThreadMirror> = (
 )
 public threadForBrokenActivation: a <Activation> reason: e <Exception> ^ <ThreadMirror> = (
   | thread = Thread new. |
-  'computing thread' out.
   thread state: #broken.
-  'computing thread 2' out.
   thread result: e.
-  'computing thread 3' out.
   thread suspendedActivation: a.
-  'computing thread 4' out.
   ^ThreadMirror reflecting: thread
 )
 )

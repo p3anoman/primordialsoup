@@ -1,6 +1,11 @@
 Newspeak3
 'Root'
-class ActorsForPrimordialSoup usingPlatform: p = (|
+class ActorsForPrimordialSoup usingPlatform: p = (
+(* The actors module. It not only creates actors, but manages the Newspeak message loop, which controls the scheduling of all actors and the connection with the JS event loop when running in the web browser.
+
+This module has a slot, #handlerOfLastResort, which can be set via the method #ulimateExceptionHandler: to an application defined  exception handler which will be called in the event of an unhandled exception. This handler is useful for web applications, which are invoked form the JS event loop.  Because they are repeatedly reinvoked, they cannot rely on a conventional exception handler in their #main:args: method. Instead, their handler should set up a presenter that will be displayed to the user. After the handler runs, the system will return to the JS event loop, and the app will continue to interact via the UI the handler created.
+*)
+|
 private WeakMap = p kernel WeakMap.
 private List = p collections List.
 private Map = p collections Map.
@@ -18,6 +23,7 @@ public handles <List> = List new.
 
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
+private handlerOfLastResort <[:Exception :Activation ]>
 |) (
 public class Actor named: debugName <String> = (|
 private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor named: debugName.
@@ -54,7 +60,7 @@ public deliver = (
 	| resolution type msg |
 
 	msg:: Message selector: selector arguments: arguments.
-
+   (* Execute the message, and deal with any exceptions *)
 	[resolution:: msg sendTo: receiver.
 	 type:: #value]
 		on: Exception
@@ -492,27 +498,6 @@ class MessageLoop application: a platform: p = (|
 	application ::= a.
 	platform ::= p.
 |) (
-private dispatchHandle: handle status: status signals: signals count: count = (
-	| handler |
-	handler:: handles at: handle.
-	nil = handler
-		ifTrue:
-			['Signal for ', handle printString, ' with no handler' out]
-		ifFalse:
-			[currentActor
-				enqueueReceiver: handler
-				selector: #value:value:
-				arguments: {status. signals}
-				resolver: nil].
-	finish: drainQueue.
-)
-private dispatchMessage: message port: port = (
-	nil = message ifFalse:
-		[nil = port
-			ifTrue: [enqueueStartupMessage: message]
-			ifFalse: [enqueuePortMessage: message port: port]].
-	finish: drainQueue.
-)
 public drainQueue = (
 	timerHeap drainQueue.
 	[pendingActors isEmpty] whileFalse:
@@ -555,20 +540,54 @@ private exit: code = (
 	(* :literalmessage: primitive: 107 *)
 	halt
 )
-private finish: wakeup = (
-	(* :literalmessage: primitive: 139 *)
-	halt.
+private dispatchMessage: message port: port = (
+(* On of two entry points into Newspeak-land. This one handles messages sent to this VM. *)
+	nil = message ifFalse:
+		[nil = port
+			ifTrue: [enqueueStartupMessage: message]
+			ifFalse: [enqueuePortMessage: message port: port]].
+	finish: drainQueue.
+)
+private dispatchHandle: handle status: status signals: signals count: count = (
+(* On of two entry points into Newspeak-land. This one handles callbacks to this VM. *)
+	| handler |
+    (* locate the callback *)
+	handler:: handles at: handle.
+	nil = handler
+		ifTrue:
+			['Signal for ', handle printString, ' with no handler' out]
+		ifFalse: (* Enqueue the callback *)
+			[currentActor
+				enqueueReceiver: handler
+				selector: #value:value:
+				arguments: {status. signals}
+				resolver: nil].
+    (* Process the VM's message queue and go back to the VM *)
+	finish: drainQueue.
 )
 public unhandledException: exception from: signalActivationSender = (
 	| activation |
 
+   (* If the application has defined an exception handler of last resort for itself, we call it *)
+    handlerOfLastResort isNil ifFalse: [
+      handlerOfLastResort value: exception value: signalActivationSender.
+      (* after calling the handler, return to the Javascript event loop *)
+      finish: timerHeap nextDueTime.
+      ].
+    (* We'll only get here if there was no handler of last resort  (the call to #finish: would take us out if there was a handler).  In this case, print out error messages and exit the VM. *)
 	'Unhandled exception: ' out.
 	exception out.
 	activation:: signalActivationSender.
+    (* Print out the stack trace *)
 	[nil = activation] whileFalse:
 		[activation out.
 		 activation:: activation sender].
 	exit: -1.
+)
+private finish: wakeup <Integer> = (
+	(* :literalmessage: primitive: 139 *)
+	(* Takes an delay and returns to the JS event loop.  *)
+    halt.
 )
 ) : (
 )
@@ -896,6 +915,9 @@ private wrapArgument: argument from: sourceActor to: targetActor = (
 )
 private wrapArguments: arguments from: sourceActor to: targetActor = (
 	^arguments collect: [:argument | wrapArgument: argument from: sourceActor to: targetActor].
+)
+public ultimateExceptionHandler: h <[:Exception :Activation]> = (
+  handlerOfLastResort:: h
 )
 ) : (
 )
