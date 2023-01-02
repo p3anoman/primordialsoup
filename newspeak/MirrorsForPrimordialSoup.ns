@@ -1196,6 +1196,18 @@ public lazySlots = (
        ].
 	^MirrorGroup wrapping: results
 )
+public applications ^<Collection[ClassMirror]> = (
+(* Answer a collection of all classes that have the reflectee as their direct mixin. Note this does not include classes whose superclasses have the reflectee as their mixin. The order of classes is undefined. The result may include classes that are otherwise unreachable because garbage collection has not completed since the last reference was erased. *)
+	| result = List new. applications <WeakArray> |
+	applications:: (isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin]) _applications.
+	nil = applications ifTrue: [^result].
+	applications do:
+		[:application | nil = application ifFalse:
+			[result add:
+				(ClassMirror reflecting:
+					(isMeta ifTrue: [classOf: application] ifFalse: [application]))]].
+	^result
+)
 ) : (
 )
 private class MutableMethodGroup fromIntermediate: ir = Collection (|
@@ -2202,8 +2214,17 @@ private unwindTo: activation = (
 ) : (
 )
 private class ThreadMirror reflecting: t = (
-	| protected thread = t. |
+  | protected thread = t. |
+  reflectees at: self put: thread.
 ) (
+protected reflectee = (^thread)
+public = other ^<Boolean> = (
+	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfThreadMirror
+)
+public hash ^<Integer> = (
+	^(identityHashOf: reflectee) bitXor: class hash
+)
 public isBroken ^<Boolean> = (
 	^thread state = #broken
 )
