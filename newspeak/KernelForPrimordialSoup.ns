@@ -244,10 +244,6 @@ public at: index <Integer> put: value <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 48 *)
 	^(ArgumentError value: index) signal
 )
-public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 50 *)
-	^ArgumentError new signal
-)
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 50 *)
 	^ArgumentError new signal
@@ -302,6 +298,10 @@ public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
 	^(ArgumentError value: prefix) signal
 )
+public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<ByteArray> = (
+	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
 ) : (
 public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
@@ -309,7 +309,9 @@ public new: size <Integer> ^<ByteArray> = (
 )
 public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = (
 	(* :literalmessage: primitive: 122 *)
+    (* Sadly, the primitive allocates a string, not a byte array. Needs fixing *)
 	| result index |
+    #BOGUS.
 	result:: ByteArray new: bytes size.
 	index:: 1.
 	bytes do: [:element <E> | result at: index put: element. index:: 1 + index].
@@ -1727,10 +1729,6 @@ public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 51 *)
 	^(ArgumentError value: index) signal
 )
-public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 50 *)
-	^ArgumentError new signal
-)
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
@@ -1800,6 +1798,21 @@ public withBlanksTrimmed ^ <String> = (
   [(self at: startIndex) <= 32] whileTrue: [startIndex:: startIndex + 1. startIndex > size ifTrue: [^'']].
   [(self at: endIndex) <= 32] whileTrue: [endIndex:: endIndex - 1].
   ^copyFrom: startIndex to: endIndex
+)
+public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<ByteArray> = (
+	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
+public withoutNbsp = (
+	('a' at: 1) isKindOfInteger
+		ifTrue:
+			[ | bytes = copyByteArrayFrom: 1  to: size. |
+			1 to: bytes size do: [:index | (bytes at: index) = 160 ifTrue: [bytes at: index put: 32]].
+			^String withAll: bytes]
+		ifFalse:
+			[ | nonbreakingSpace = String fromRune: 160.
+			space = String fromRune: 32. |
+			^replaceAll: nonbreakingSpace with: space]
 )
 ) : (
 public cr ^ <Instance> = (
