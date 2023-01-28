@@ -565,15 +565,24 @@ private dispatchHandle: handle status: status signals: signals count: count = (
     (* Process the VM's message queue and go back to the VM *)
 	finish: drainQueue.
 )
+private finish: wakeup <Integer> = (
+	(* :literalmessage: primitive: 139 *)
+	(* Takes an delay and returns to the JS event loop.  *)
+    halt.
+)
 public unhandledException: exception from: signalActivationSender = (
-	| activation |
+	| activation pointOfNoReturn ::= false. |
 
    (* If the application has defined an exception handler of last resort for itself, we call it *)
     handlerOfLastResort isNil ifFalse: [
-      handlerOfLastResort value: exception value: signalActivationSender.
-      (* after calling the handler, return to the Javascript event loop *)
-      finish: timerHeap nextDueTime.
-      ].
+      (* we haven't hit the a bug in the handler of last resort, so try it *)
+      pointOfNoReturn ifFalse: [
+        (* make sure we don't go into infinite loop if the nadler provokes a bug *)
+        pointOfNoReturn:: true.
+        handlerOfLastResort value: exception value: signalActivationSender.
+        (* after calling the handler, return to the Javascript event loop *)
+        finish: timerHeap nextDueTime.
+      ]].
     (* We'll only get here if there was no handler of last resort  (the call to #finish: would take us out if there was a handler).  In this case, print out error messages and exit the VM. *)
 	'Unhandled exception: ' out.
 	exception out.
@@ -583,11 +592,6 @@ public unhandledException: exception from: signalActivationSender = (
 		[activation out.
 		 activation:: activation sender].
 	exit: -1.
-)
-private finish: wakeup <Integer> = (
-	(* :literalmessage: primitive: 139 *)
-	(* Takes an delay and returns to the JS event loop.  *)
-    halt.
 )
 ) : (
 )
