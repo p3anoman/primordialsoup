@@ -247,22 +247,6 @@ fixCollisionsAfter: start <Integer> = (
 public includesKey: key <K> ^<Boolean> = (
 	^(table = (table at: (scanFor: key))) not
 )
-incrementSize = (
-	| oldTable newTable |
-	size_:: 1 + size_.
-	(table size * 3) >= (size_ * 8) ifTrue: [^self]. (* 75% load factor *)
-
-	oldTable:: table.
-	table:: newTable:: Array new: oldTable size << 1.
-	1 to: newTable size by: 2 do:
-		[:newIndex | newTable at: newIndex put: newTable].
-	1 to: oldTable size by: 2 do: [:oldIndex |
-		| key = oldTable at: oldIndex. |
-		oldTable = key ifFalse:
-			[ | newIndex = scanForEmptySlotFor: key. |
-			newTable at: newIndex put: key.
-			newTable at: (1 + newIndex) put: (oldTable at: 1 + oldIndex)]].
-)
 public isEmpty ^<Boolean> = (
 	^0 = size_
 )
@@ -341,6 +325,22 @@ public values ^<List[V]> = (
 		table = (table at: index) ifFalse:
 			[result add: (table at: 1 + index)]].
 	^result
+)
+incrementSize = (
+	| oldTable newTable |
+	size_:: 1 + size_.
+	(table size * 3) >= (size_ * 8) ifTrue: [^self]. (* 75% load factor *)
+
+	oldTable:: table.
+	table:: newTable:: Array new: oldTable size << 1.
+	1 to: newTable size by: 2 do:
+		[:newIndex | newTable at: newIndex put: newTable].
+	1 to: oldTable size by: 2 do: [:oldIndex |
+		| key = oldTable at: oldIndex. |
+		oldTable = key ifFalse:
+			[ | newIndex = scanForEmptySlotFor: key. |
+			newTable at: newIndex put: key.
+			newTable at: (1 + newIndex) put: (oldTable at: 1 + oldIndex)]].
 )
 ) : (
 public new ^<Map[K, V]> = (

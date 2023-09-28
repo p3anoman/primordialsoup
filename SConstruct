@@ -10,7 +10,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     env = Environment(TARGET_ARCH='x86_64', tools=['msvc', 'mslink'])
   elif target_os == 'emscripten':
     env = Environment(ENV = os.environ, tools=['g++', 'gnulink'])
-    env['CXX'] = cxx or 'em++'
+    env['CXX'] = cxx
   else:
     env = Environment(tools=['g++', 'gnulink'])
     env['CXX'] = cxx
@@ -55,6 +55,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   elif arch == 'x64':
     if target_os == 'windows':
       env['LINKFLAGS'] += ['/MACHINE:X64']
+    elif target_os == 'macos':
+      env['CCFLAGS'] += ['-arch', 'x86_64']
+      env['LINKFLAGS'] += ['-arch', 'x86_64']      
     else:
       env['CCFLAGS'] += ['-m64']
       env['LINKFLAGS'] += ['-m64']
@@ -62,6 +65,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   elif arch == 'arm':
     configname += 'ARM'
   elif arch == 'arm64':
+    if target_os == 'macos':
+      env['CCFLAGS'] += ['-arch', 'arm64']
+      env['LINKFLAGS'] += ['-arch', 'arm64']    
     configname += 'ARM64'
   elif arch == 'mips':
     env['CCFLAGS'] += ['-EL']
@@ -72,12 +78,8 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     env['LINKFLAGS'] += ['-EL']
     configname += 'MIPS64'
   elif arch == 'riscv32':
-    env['CCFLAGS'] += ['-m32']
-    env['LINKFLAGS'] += ['-m32']
     configname += 'RISCV32'
   elif arch == 'riscv64':
-    env['CCFLAGS'] += ['-m64']
-    env['LINKFLAGS'] += ['-m64']
     configname += 'RISCV64'
   elif arch == 'wasm':
     configname += 'WASM'
@@ -284,35 +286,35 @@ def BuildSnapshots(outdir, host_vm):
 
 def Main():
   host_os = None
+  default_host_cxx = None  
   if platform.system() == 'Linux':
     host_os = 'linux'
+    default_host_cxx = 'g++'    
   elif platform.system() == 'Darwin':
     host_os = 'macos'
+    default_host_cxx = 'clang++'    
   elif platform.system() == 'Windows':
     host_os = 'windows'
-  target_os = ARGUMENTS.get('os', host_os)
+    default_host_cxx = 'cl'
+  host_cxx = ARGUMENTS.get('cxx_host', default_host_cxx)
 
-  target_cxx = ARGUMENTS.get('cxx_target', None)
-  host_cxx = None
-  if platform.system() == 'Linux':
-    host_cxx = 'g++'
-  elif platform.system() == 'Darwin':
-    host_cxx = 'clang++'
-  elif platform.system() == 'Windows':
-    host_cxx = 'cl'
-  host_cxx = ARGUMENTS.get('cxx_host', host_cxx)
+  target_os = ARGUMENTS.get('os', host_os)
+  default_target_cxx = None
+  if target_os == 'emscripten':
+    default_target_cxx = 'em++'
+  else:
+    default_target_cxx = default_host_cxx
+  target_cxx = ARGUMENTS.get('cxx_target', default_target_cxx)  
 
   target_arch = ARGUMENTS.get('arch', None)
   host_arch = None
-  if (platform.machine() == 'x86_64' or
-      platform.machine() == 'AMD64'):
+  if platform.machine() in ['x86_64', 'AMD64']:
     host_arch = 'x64'
-  elif platform.machine() == 'i386':
+  elif platform.machine() in ['i386', 'X86']:
     host_arch = 'ia32'
-  elif platform.machine() == 'aarch64':
+  elif platform.machine() in ['aarch64', 'arm64', 'ARM64']:
     host_arch = 'arm64'
-  elif (platform.machine() == 'armv7l' or
-        platform.machine() == 'armv6l'):
+  elif platform.machine() in ['armv7l', 'armv6l', 'ARM']:
     host_arch = 'arm'
   elif platform.machine() == 'mips':
     host_arch = 'mips'
@@ -327,7 +329,7 @@ def Main():
   if sanitize not in ['address', 'leak', 'memory', 'thread', 'undefined', None]:
     raise Exception("Unknown sanitize option: " + sanitize)
 
-  # Build a release host VM for building the snapshots. Don't use the santizers
+  # Build a release host VM for building the snapshots. Don't use the sanitizers
   # here so the snapshots have a fixed dependency and won't be rebuilt for each
   # sanitizer.
   host_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
@@ -351,7 +353,15 @@ def Main():
     # for.
     BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
     BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
-
+  elif target_arch == None and target_os == 'macos':
+    # On Mac, also build for the other Mac architecture, unless a specific
+    # architecture was asked for.
+    if host_arch != 'arm64':
+      BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
+      BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
+    if host_arch != 'x64':
+      BuildVM(host_cxx, 'x64', host_os, True, sanitize)
+      BuildVM(host_cxx, 'x64', host_os,  False, sanitize)
   ndk = ARGUMENTS.get('ndk', None)
   if ndk != None:
     # The following paths were taken from android-ndk-r19c. They might differ
