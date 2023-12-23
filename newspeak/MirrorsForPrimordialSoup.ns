@@ -1312,21 +1312,6 @@ public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfObjectMirror
 )
-private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
-	| receiverClass mixinMirror imethod result |
-	receiverClass:: classOf: reflectee.
-	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
-	imethod:: compiler
-		compileExpressionSource: expression
-		debugMapper: nil
-		withScope: rawScope
-		inMixin: mixinMirror.
-
-	imethod methodMixin: (mixinOf: receiverClass).
-	imethod source: expression.
-	imethod debugInfo source: expression.
-	^imethod compiledMethod metadata: imethod debugInfo
-)
 public evaluate: expression <String> ^<ThreadMirror> = (
 	^(evaluateSuspended: expression) resume
 )
@@ -1425,6 +1410,24 @@ public getLazySlot: name = (
 	raw =  slotOf: reflectee at: index.
     |
 	^ObjectMirror reflecting: raw
+)
+private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
+	| receiverClass mixinMirror imethod result |
+	receiverClass:: classOf: reflectee.
+	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
+	imethod:: compiler
+		compileExpressionSource: expression
+		debugMapper: nil
+		withScope: rawScope
+		inMixin: mixinMirror.
+
+	imethod methodMixin: (mixinOf: receiverClass).
+	imethod source: expression.
+	imethod debugInfo source: expression.
+	^imethod compiledMethod metadata: imethod debugInfo
+)
+public compileExpression: expression <String> scope: rawScope <Map[Symbol, Object]> ^<MethodMirror> = (
+	^MethodMirror reflecting: (compileExpression: expression with: rawScope)
 )
 ) : (
 )
