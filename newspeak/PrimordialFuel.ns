@@ -344,6 +344,7 @@ stream = WriteStream new.
 clusters = IdentityMap new: 32.
 orderedClusters = List new.
 stack ::= List new.
+ephemeronList ::= List new.
 refs ::= IdentityMap new: 256.
 nextRefIndex
 |
@@ -491,26 +492,22 @@ public writeNodes = (
 class EphemeronCluster = (|
 objects = List new.
 |) (
-public analyze: object = (
-	objects add: object.
-
-	(* Ephemeron accessors are known to be side-effect free. *)
-	(* :todo: Maintain the ephemeron property. *)
-	enqueue: object key.
-	enqueue: object value.
-	enqueue: object finalizer.
-)
-public writeEdges = (
-	writeRef: Ephemeron. (* :todo: *)
-	objects do: [:object |
-		writeRef: object key.
-		writeRef: object value.
-		writeRef: object finalizer].
-)
 public writeNodes = (
 	writeFormat: 3 (* :todo: maybe kEphemeronCid? *).
 	stream unsigned: objects size.
 	objects do: [:object | registerRef: object].
+)
+public writeEdges = (
+	writeRef: Ephemeron. (* :todo: *)
+	objects do: [:object |
+		writeWeakRef: object key.
+		writeWeakRef: object value.
+		writeWeakRef: object finalizer].
+)
+public analyze: object = (
+	objects add: object.
+	(* Nothing is traced here; analyzeEphemeronList might trace later. *)
+    ephemeronList addLast: object
 )
 ) : (
 )
@@ -700,6 +697,15 @@ registerRef: object = (
 	refs at: object putReplace: nextRefIndex.
 	nextRefIndex:: nextRefIndex + 1.
 )
+writeFormat: format = (
+	stream int32: format.
+)
+writeRef: object = (
+	stream unsigned: (refs at: object).
+)
+writeWeakRef: object = (
+	stream unsigned: (refs at: object ifAbsent: [refs at: nil])
+)
 public serialize: root = (
 	nextRefIndex:: 1.
 
@@ -707,7 +713,11 @@ public serialize: root = (
 	createSpecialClassClusters.
 
 	enqueue: root.
-	[stack isEmpty] whileFalse: [analyze: stack removeLast].
+	[stack isEmpty] whileFalse: [
+		(* Process as many strong references as we can, before checking ephemerons. *)
+		[stack isEmpty] whileFalse: [analyze: stack removeLast].
+		analyzeEphemeronList
+	].
 
 	stream uint16: 16r1984.
 	stream uint16: version.
@@ -719,14 +729,16 @@ public serialize: root = (
 
 	^stream stealBytes
 )
-writeFormat: format = (
-	stream int32: format.
-)
-writeRef: object = (
-	stream unsigned: (refs at: object).
-)
-writeWeakRef: object = (
-	stream unsigned: (refs at: object ifAbsent: [refs at: nil])
+analyzeEphemeronList = (
+  ephemeronList removeAllSuchThat: [:e |
+    (* Ephemeron accessors are known to be side-effect free. *)
+    (* Enliven the value and finalizer when the key is live. *)
+    (refs includesKey: e key) ifTrue: [
+      enqueue: e value.
+      enqueue: e finalizer.
+      true
+    ] ifFalse: [ false ]
+  ]
 )
 ) : (
 )
@@ -805,35 +817,6 @@ replaceSymbolTable = (
 	(* registerRef: expects we've already traced the object. *)
 	refs at: newSymbolTable put: 0.
 )
-public serialize: root = (
-	| interpreter |
-	nextRefIndex:: 1.
-
-	(* Space optimization: ensure the most popular referents have short back refs. *)
-	refs at: nil put: 0.
-	analyze: nil.
-	refs at: false put: 0.
-	analyze: false.
-	refs at: true put: 0.
-	analyze: true.
-
-	createSpecialClassClusters.
-
-	enqueue: root.
-	[stack isEmpty] whileFalse: [analyze: stack removeLast].
-
-	replaceSymbolTable.
-
-	stream uint16: 16r1984.
-	stream uint16: version.
-	stream uint16: orderedClusters size.
-	stream uint32: refs size - 1. (* -1 accounts for symbol table placeholder *)
-	orderedClusters do: [:c | c writeNodes].
-	orderedClusters do: [:c | c writeEdges].
-	writeRef: root.
-
-	^stream stealBytes
-)
 public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
 	keepSource:: s.
@@ -881,6 +864,39 @@ writeRef: object = (
 )
 writeWeakRef: object = (
 	^super writeWeakRef: (replacements atOrItself: object)
+)
+public serialize: root = (
+	| interpreter |
+	nextRefIndex:: 1.
+
+	(* Space optimization: ensure the most popular referents have short back refs. *)
+	refs at: nil put: 0.
+	analyze: nil.
+	refs at: false put: 0.
+	analyze: false.
+	refs at: true put: 0.
+	analyze: true.
+
+	createSpecialClassClusters.
+
+	enqueue: root.
+	[stack isEmpty] whileFalse: [
+      (* Process as many strong references as we can, before checking ephemerons. *)
+	  [stack isEmpty] whileFalse: [analyze: stack removeLast].
+      analyzeEphemeronList
+    ].
+
+	replaceSymbolTable.
+
+	stream uint16: 16r1984.
+	stream uint16: version.
+	stream uint16: orderedClusters size.
+	stream uint32: refs size - 1. (* -1 accounts for symbol table placeholder *)
+	orderedClusters do: [:c | c writeNodes].
+	orderedClusters do: [:c | c writeEdges].
+	writeRef: root.
+
+	^stream stealBytes
 )
 ) : (
 )
