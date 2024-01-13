@@ -111,7 +111,7 @@ public main: args <Sequence[String]> = (
 )
 ) : (
 )
-class Preloader resources: r <Array[{String. String. String | Class}]> applicationConfiguration: a <Class> = (
+public class Preloader resources: r <Array[{String. String. String | Class}]> applicationConfiguration: a <Class> = (
 (* Given a list of resources and an app, this class creates a wrapper for the app that converts the resources
     into actual objects and feeds them to the app so it can be instantiated.
 *)
