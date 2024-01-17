@@ -1030,13 +1030,6 @@ public isKindOfMethodMirror ^<Boolean> = (
 public name = (
 	^method selector
 )
-public selectors ^ <List[Symbol]> = (
- | result <List[Symbol]> = List new. |
-  method literals do: [:s |
-        s isKindOfString ifTrue: [result add: s]
-       ].
-  ^result
-)
 public source ^<String> = (
 	(* :todo: Should this be async? *)
 	^method source
@@ -1051,6 +1044,37 @@ parseMetadata ^ <MetadataParser> = (
     |
     metadataParser gatherMetadataBackwards.
     ^metadataParser
+)
+sizeOf: bytecode = (
+  bytecode <= 223 ifTrue: [^1].
+  bytecode <= 248 ifTrue: [^2].
+  ^3
+)
+selectorsFromBytecode ^ <List[Symbol]> = (
+  (* Search the bytecode for selectors implied by common send instructions. *)
+  |
+  pc ::= 1.
+  bytecode = method bytecode.
+  result <List[Symbol]> = List new.
+  |
+  [ pc > bytecode size ] whileFalse: [
+    | instruction = bytecode at: pc. |
+    (instruction > 79 and: [instruction <= 111]) ifTrue: [
+      result add: (commonSend: instruction - 79).
+    ].
+    pc:: pc + (sizeOf: instruction).
+  ].
+  ^result
+)
+commonSend: offset = (
+  ^{#+. #-. #<. #>. #<=. #>=. #=. #~=. #*. #/. #\\. #@. #bitShift:. #//. #bitAnd:. #bitOr:. #at:. #at:put:. #size. #next. #nextPut:. #atEnd. #==. #class. #blockCopy:. #value. #value:. #do:. #new. #new:. #x. #y.} at: offset.
+)
+public selectors ^ <List[Symbol]> = (
+ | result <List[Symbol]> = selectorsFromBytecode. |
+  method literals do: [:s |
+        s isKindOfString ifTrue: [result add: s]
+       ].
+  ^result
 )
 ) : (
 )
@@ -1312,6 +1336,21 @@ public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfObjectMirror
 )
+private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
+	| receiverClass mixinMirror imethod result |
+	receiverClass:: classOf: reflectee.
+	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
+	imethod:: compiler
+		compileExpressionSource: expression
+		debugMapper: nil
+		withScope: rawScope
+		inMixin: mixinMirror.
+
+	imethod methodMixin: (mixinOf: receiverClass).
+	imethod source: expression.
+	imethod debugInfo source: expression.
+	^imethod compiledMethod metadata: imethod debugInfo
+)
 public evaluate: expression <String> ^<ThreadMirror> = (
 	^(evaluateSuspended: expression) resume
 )
@@ -1410,24 +1449,6 @@ public getLazySlot: name = (
 	raw =  slotOf: reflectee at: index.
     |
 	^ObjectMirror reflecting: raw
-)
-private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
-	| receiverClass mixinMirror imethod result |
-	receiverClass:: classOf: reflectee.
-	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
-	imethod:: compiler
-		compileExpressionSource: expression
-		debugMapper: nil
-		withScope: rawScope
-		inMixin: mixinMirror.
-
-	imethod methodMixin: (mixinOf: receiverClass).
-	imethod source: expression.
-	imethod debugInfo source: expression.
-	^imethod compiledMethod metadata: imethod debugInfo
-)
-public compileExpression: expression <String> scope: rawScope <Map[Symbol, Object]> ^<MethodMirror> = (
-	^MethodMirror reflecting: (compileExpression: expression with: rawScope)
 )
 ) : (
 )
