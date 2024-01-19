@@ -1050,30 +1050,47 @@ sizeOf: bytecode = (
   bytecode <= 248 ifTrue: [^2].
   ^3
 )
-selectorsFromBytecode ^ <List[Symbol]> = (
-  (* Search the bytecode for selectors implied by common send instructions. *)
+commonSend: offset = (
+  ^{#+. #-. #<. #>. #<=. #>=. #=. #~=. #*. #/. #\\. #@. #bitShift:. #//. #bitAnd:. #bitOr:. #at:. #at:put:. #size. #next. #nextPut:. #atEnd. #==. #class. #blockCopy:. #value. #value:. #do:. #new. #new:. #x. #y.} at: offset.
+)
+public selectors ^ <List[Symbol]> = (
   |
   pc ::= 1.
+  extA ::= 0.
   bytecode = method bytecode.
   result <List[Symbol]> = List new.
   |
   [ pc > bytecode size ] whileFalse: [
     | instruction = bytecode at: pc. |
     (instruction > 79 and: [instruction <= 111]) ifTrue: [
-      result add: (commonSend: instruction - 79).
+      (* common send *)
+      result add: (commonSend: instruction - 79)
     ].
-    pc:: pc + (sizeOf: instruction).
+    (instruction > 112 and: [instruction <= 175]) ifTrue: [
+      (* ordinary send *)
+      | index = 1 + (instruction bitAnd: 15). |
+      result add: (method literals at: index)
+    ].
+    instruction = 224 ifTrue: [
+      (* index extension *)
+      | byte2 = bytecode at: (pc + 1). |
+      extA:: (extA << 8) + byte2
+    ].
+    ({224. 227. 228. 253} indexOf: instruction) > 0 ifTrue: [
+      (* various users of extA which are not sends *)
+      extA:: 0
+    ].
+    ({238. 240. 241. 245. 254} indexOf: instruction) > 0 ifTrue: [
+      (* ordinary, implicit receiver, super, self, outer sends *)
+      |
+      byte2 = bytecode at: (pc + 1).
+      index = 1 + (extA << 5) + (byte2 >> 3).
+      |
+      extA:: 0.
+      result add: (method literals at: index)
+    ].
+    pc:: pc + (sizeOf: instruction)
   ].
-  ^result
-)
-commonSend: offset = (
-  ^{#+. #-. #<. #>. #<=. #>=. #=. #~=. #*. #/. #\\. #@. #bitShift:. #//. #bitAnd:. #bitOr:. #at:. #at:put:. #size. #next. #nextPut:. #atEnd. #==. #class. #blockCopy:. #value. #value:. #do:. #new. #new:. #x. #y.} at: offset.
-)
-public selectors ^ <List[Symbol]> = (
- | result <List[Symbol]> = selectorsFromBytecode. |
-  method literals do: [:s |
-        s isKindOfString ifTrue: [result add: s]
-       ].
   ^result
 )
 ) : (
