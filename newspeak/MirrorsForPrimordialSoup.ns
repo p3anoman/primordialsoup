@@ -3,6 +3,7 @@ Newspeak3
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns (* :exemplar: platform mirrors *) = (|
 private Collection = platform collections Collection.
 private List = platform collections List.
+private Set = platform collections Set.
 private Map = platform collections Map.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
@@ -1053,12 +1054,12 @@ sizeOf: bytecode = (
 commonSend: offset = (
   ^{#+. #-. #<. #>. #<=. #>=. #=. #~=. #*. #/. #\\. #@. #bitShift:. #//. #bitAnd:. #bitOr:. #at:. #at:put:. #size. #next. #nextPut:. #atEnd. #==. #class. #blockCopy:. #value. #value:. #do:. #new. #new:. #x. #y.} at: offset.
 )
-public selectors ^ <List[Symbol]> = (
+public selectors ^ <Array[Symbol]> = (
   |
   pc ::= 1.
   extA ::= 0.
   bytecode = method bytecode.
-  result <List[Symbol]> = List new.
+  result <Set[Symbol]> = Set new.
   |
   [ pc > bytecode size ] whileFalse: [
     | instruction = bytecode at: pc. |
@@ -1091,7 +1092,7 @@ public selectors ^ <List[Symbol]> = (
     ].
     pc:: pc + (sizeOf: instruction)
   ].
-  ^result
+  ^result asArray
 )
 ) : (
 )
