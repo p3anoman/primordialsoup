@@ -1125,10 +1125,6 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	(isValidSuperclass: superclass) ifFalse: [^(ArgumentError value: superclass) signal].
 	^self apply: superclass format: (formatOf: superclass) withName: name enclosingObject: eo
 )
-public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
-	(* Sent by the compiler in nested class accessors. *)
-	^apply: superclass withName: (_name , '`', eo hash printString) enclosingObject: eo
-)
 public at: nestedMixinName = (
 	(* bogus: polymorphic with nested mixins map in Squeak. *)
 	_nestedMixins do: [:nestedMixin |
@@ -1207,6 +1203,10 @@ private toWeakSet: set add: element = (
 public value = (
 	(* bogus: polymorphic with method class association in Squeak. *)
 	^self
+)
+public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
+	(* Sent by the compiler in nested class accessors. *)
+	^apply: superclass withName: _name  enclosingObject: eo
 )
 ) : (
 )
