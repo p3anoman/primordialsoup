@@ -857,13 +857,6 @@ public preamble ^<Symbol> = (
 public primaryFactorySelector ^ <Symbol> = (
   ^mixin _primaryFactorySelector
 )
-public selectors ^ <List[Symbol]> = (
-  | result <List[Symbol]> = List new. |
-  instanceInitializer literals do: [:s |
-	 s isKindOfString ifTrue: [result add: (s copyFrom: (s lastIndexOf: '`') + 1 to: s size)]
-	].
-  ^result
-)
 public source ^<String> = (
 	^mixin _headerSource
 )
@@ -893,6 +886,19 @@ parseMetadata ^ <MetadataParser> = (
     |
     metadataParser gatherMetadataBackwards.
     ^metadataParser
+)
+public selectors ^ <List[Symbol]> = (
+  | initializer = instanceInitializer. |
+  initializer bytecode isNil ifTrue: [
+    (* The bytecode is nil for the initializer of _Object *)
+    | result <List[Symbol]> = List new. |
+    instanceInitializer literals do: [:s |
+      s isKindOfString ifTrue: [result add: (s copyFrom: (s lastIndexOf: '`') + 1 to: s size)]
+	].
+    ^result
+  ] ifFalse: [
+    ^(MethodMirror reflecting: initializer) selectors.
+  ]
 )
 ) : (
 )
@@ -1054,7 +1060,7 @@ sizeOf: bytecode = (
 commonSend: offset = (
   ^{#+. #-. #<. #>. #<=. #>=. #=. #~=. #*. #/. #\\. #@. #bitShift:. #//. #bitAnd:. #bitOr:. #at:. #at:put:. #size. #next. #nextPut:. #atEnd. #==. #class. #blockCopy:. #value. #value:. #do:. #new. #new:. #x. #y.} at: offset.
 )
-public selectors ^ <Array[Symbol]> = (
+public selectors ^ <List[Symbol]> = (
   |
   pc ::= 1.
   extA ::= 0.
@@ -1092,7 +1098,7 @@ public selectors ^ <Array[Symbol]> = (
     ].
     pc:: pc + (sizeOf: instruction)
   ].
-  ^result asArray
+  ^List withAll: (result asArray)
 )
 ) : (
 )
