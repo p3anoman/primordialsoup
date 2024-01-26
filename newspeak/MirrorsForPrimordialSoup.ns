@@ -897,7 +897,7 @@ public selectors ^ <List[Symbol]> = (
 	].
     ^result
   ] ifFalse: [
-    ^(MethodMirror reflecting: initializer) selectors.
+    ^(MethodMirror reflecting: initializer) selectors removeAllSuchThat: [ :s | (s indexOf: '`') > 0 ]
   ]
 )
 ) : (
