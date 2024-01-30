@@ -1086,7 +1086,7 @@ public selectors ^ <List[Symbol]> = (
       | byte2 = bytecode at: (pc + 1). |
       extA:: (extA << 8) + byte2
     ].
-    ({224. 227. 228. 253} indexOf: instruction) > 0 ifTrue: [
+    ({227. 228. 253} indexOf: instruction) > 0 ifTrue: [
       (* various users of extA which are not sends *)
       extA:: 0
     ].
