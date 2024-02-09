@@ -1477,6 +1477,9 @@ public getLazySlot: name = (
     |
 	^ObjectMirror reflecting: raw
 )
+public compileExpression: expression <String> scope: rawScope <Map[Symbol, Object]> ^<MethodMirror> = (
+	^MethodMirror reflecting: (compileExpression: expression with: rawScope)
+)
 ) : (
 )
 private class Simulator = (|
