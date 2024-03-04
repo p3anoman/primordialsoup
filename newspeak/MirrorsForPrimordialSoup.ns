@@ -903,6 +903,19 @@ public selectors ^ <List[Symbol]> = (
     ^(MethodMirror reflecting: initializer) selectors removeAllSuchThat: [ :s | (s indexOf: '`') > 0 ]
   ]
 )
+public symbols ^ <List[Symbol]> = (
+  | initializer = instanceInitializer. |
+  initializer bytecode isNil ifTrue: [
+    (* The bytecode is nil for the initializer of _Object *)
+    | result <List[Symbol]> = List new. |
+    instanceInitializer literals do: [:s |
+      s isKindOfString ifTrue: [result add: (s copyFrom: (s lastIndexOf: '`') + 1 to: s size)]
+	].
+    ^result
+  ] ifFalse: [
+    ^(MethodMirror reflecting: initializer) symbols removeAllSuchThat: [ :s | (s indexOf: '`') > 0 ]
+  ]
+)
 ) : (
 )
 public class ClassMirror reflecting: behavior = (|
@@ -1102,6 +1115,13 @@ public selectors ^ <List[Symbol]> = (
     pc:: pc + (sizeOf: instruction)
   ].
   ^List withAll: (result asArray)
+)
+public symbols ^ <List[Symbol]> = (
+ | result <List[Symbol]> = List new. |
+  method literals do: [:s |
+        s isKindOfString ifTrue: [result add: s]
+       ].
+  ^result
 )
 ) : (
 )
@@ -2453,6 +2473,9 @@ public hash ^ <Integer> = (
 public = other = (
 	^other isKindOfLazySlotMirror
 		and: [mainMethod = other mainMethod]
+)
+public symbolss ^ <List[Symbol]> = (
+  ^initMethod symbols (* probably need to add reflectee, and remove initMethod name *)
 )
 ) : (
 public lazySlotsCategory = (
