@@ -1500,6 +1500,13 @@ public getLazySlot: name = (
 public compileExpression: expression <String> scope: rawScope <Map[Symbol, Object]> ^<MethodMirror> = (
 	^MethodMirror reflecting: (compileExpression: expression with: rawScope)
 )
+public setLazySlot: name  to: value = (
+	| 
+    rawName = intermediatesX IntermediateLazySlot slotNameForLazySlotNamed: name.
+	index = indexOfSlotNamed: rawName in: (classOf: reflectee).
+    |
+	slotOf: reflectee at: index put: value.
+)
 ) : (
 )
 private class Simulator = (|
@@ -2474,7 +2481,7 @@ public = other = (
 	^other isKindOfLazySlotMirror
 		and: [mainMethod = other mainMethod]
 )
-public symbolss ^ <List[Symbol]> = (
+public symbols ^ <List[Symbol]> = (
   ^initMethod symbols (* probably need to add reflectee, and remove initMethod name *)
 )
 ) : (
