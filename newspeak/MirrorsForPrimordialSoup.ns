@@ -716,7 +716,7 @@ public source ^<String> = (
 private to: sb writeClassDeclaration: instanceMixin = (
 	sb add: instanceMixin _headerSource.
 	sb writeln: ' ('.
-    instanceSide lazySlots do:
+    (MixinMirror reflecting: instanceMixin) lazySlots do:
 		[:lazySlot | sb writeln: lazySlot source].
 	instanceMixin _nestedMixins do:
 		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
