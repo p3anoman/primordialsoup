@@ -621,10 +621,10 @@ public install ^<ClassDeclarationMirror> = (
 private to: sb writeClassDeclaration: declIR = (
 	sb add: declIR headerSource.
 	sb writeln: ' ('.
-    declIR instanceSide lazySlots do:
-		[:lazySlot | sb writeln: lazySlot source].
 	declIR instanceSide nestedClasses do:
 		[:nestedIR | to: sb writeClassDeclaration: nestedIR].
+    declIR instanceSide lazySlots do:
+		[:lazySlot | sb writeln: lazySlot source].        
 	declIR instanceSide methods do:
 		[:method | sb writeln: method source].
 	sb writeln: ') : ('.
@@ -716,10 +716,10 @@ public source ^<String> = (
 private to: sb writeClassDeclaration: instanceMixin = (
 	sb add: instanceMixin _headerSource.
 	sb writeln: ' ('.
-    (MixinMirror reflecting: instanceMixin) lazySlots do:
-		[:lazySlot | sb writeln: lazySlot source].
 	instanceMixin _nestedMixins do:
 		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
+    (MixinMirror reflecting: instanceMixin) lazySlots do:
+		[:lazySlot | sb writeln: lazySlot source].        
 	instanceMixin _methods do:
 		[:method | method isSynthetic ifFalse:
 			[sb writeln: method source]].
