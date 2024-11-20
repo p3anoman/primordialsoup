@@ -17,7 +17,6 @@ nil is a valid element. *)
 	protected data ::= Array new: capacity.
 	|
 ) (
-(* Concatenation. *)
 public , other = (
 	| result = List new: (self size + other size | 3). |
 	self do: [:element | result add: element].
@@ -159,6 +158,12 @@ public size ^ <Integer> = (
 public sort: lessOrEqual <[:E :E | Boolean]> = (
 	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
+public with: other <List[X def]> do: action <[:E :X]> = (
+	assert: [ self size = other size ] message: 'Cannot jointly interate collections of different size'.
+	1 to: size do:
+		[:index <Integer> |
+ action value: (at: index) value: (other at: index)].
+ )
 ) : (
 public new ^ <List[E]> = (
 	^self new: 3
@@ -409,7 +414,6 @@ public printString = (
 )
 ) : (
 )
-
 public class Set new: capacity <Integer> = Collection (
   (* A collection of elements without duplicates.
 
@@ -426,7 +430,6 @@ nil is a valid element. *)
 	|
 	createTable: capacity.
 ) (
-
 protected hashtable_ ^ <Array> = (
     hashtable_slot isNil ifTrue: [hashtable_slot:: rehash].
     ^hashtable_slot
@@ -474,7 +477,7 @@ public do: action <[:E]> = (
 		 table = element ifFalse:
 			[action value: element]].
 )
-  public include: element <E> ifNew: onNew <[]> ^<E> = (
+public include: element <E> ifNew: onNew <[]> ^<E> = (
 	| bucketIndex keyIndex |
 	bucketIndex:: scanFor: element.
 	bucketIndex < 0 ifTrue:
