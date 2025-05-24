@@ -1080,7 +1080,7 @@ public new = (
 	^self new: 32
 )
 )
-public class InstanceMixin = (
+public class InstanceMixin (* :exemplar: mixinOf: MessageNotUnderstood *) = (
 (* An instance-side mixin is the difference between a (non-meta) class and its superclass: a set of additional methods, slots and nested class declarations. Instance-side mixins always have a paired class-side mixin.
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)

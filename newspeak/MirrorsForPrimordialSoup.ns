@@ -1123,6 +1123,14 @@ public symbols ^ <List[Symbol]> = (
        ].
   ^result
 )
+public isPrimitive ^ <Boolean> = (
+(* This should not exist, because primitives should not exist. But while we have them, we need to be able to tell.  *)
+  ^method primitive ~= 0
+)
+public primitive ^ <Boolean> = (
+(* This should not exist, because primitives should not exist. But while we have them, we need to be able to tell.  *)
+  ^method primitive
+)
 ) : (
 )
 private class MirrorGroup wrapping: collection = Collection (|
