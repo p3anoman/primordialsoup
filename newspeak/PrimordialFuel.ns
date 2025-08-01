@@ -779,17 +779,6 @@ replaceClass: old with: nue = (
 	replacements at: old put: nue.
 	replacements at: (classOf: old) put: (classOf: nue)
 )
-replaceMethod: method = (
-	^replacements at: method ifAbsentPut:
-		[ | newMethod = Method new. |
-		 newMethod header: method header.
-		 newMethod literals: (canonicalize: method literals in: canonicalLiterals).
-		 newMethod bytecode: (canonicalize: method bytecode in: canonicalBytecode).
-		 newMethod mixin: method mixin.
-		 newMethod selector: method selector.
-		 newMethod source: (keepSource ifTrue: [method source] ifFalse: [nil = method source ifFalse: [0]]).
-		 newMethod]
-)
 replaceMixin: mixin = (
 	^replacements at: mixin ifAbsentPut:
 		[ | newMixin = InstanceMixin new. |
@@ -897,6 +886,17 @@ public serialize: root = (
 	writeRef: root.
 
 	^stream stealBytes
+)
+replaceMethod: method = (
+	^replacements at: method ifAbsentPut:
+		[ | newMethod = Method new. |
+		 newMethod header: method header.
+		 newMethod literals: (canonicalize: method literals in: canonicalLiterals).
+		 newMethod bytecode: (canonicalize: method bytecode in: canonicalBytecode).
+		 newMethod mixin: method mixin.
+		 newMethod selector: method selector.
+		 newMethod metadata: (keepSource ifTrue: [method metadata] ifFalse: [nil = method metadata ifFalse: [0]]).
+		 newMethod]
 )
 ) : (
 )
