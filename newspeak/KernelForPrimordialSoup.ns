@@ -8,7 +8,7 @@ private symbolTableUsed
 public class Activation _cannotInstantiate = (
 (* A reified activation record.
 
-Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module.
+Note that this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module.
 |
 sender <Activation | nil>
 bci <SmallInteger | nil>
@@ -1401,7 +1401,7 @@ public literals <Array> (* Must be slot 2, known to the VM. *)
 public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
 public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
-public metadata <String | LazySlotTag | DebugInfo | Nil>
+public metadata <String | MethodMetadata | DebugInfo | Nil>
 |) (
 public isPrivate ^<Boolean> = (
 	^#private = accessModifier
@@ -1421,10 +1421,6 @@ public numTemps ^<Integer> = (
 public primitive ^<Integer> = (
 	^(header >> 16) bitAnd: 1023
 )
-public source: s = (
-	(* Can be removed after next bootstrap compiler update. *)
-	metadata: s
-)
 public accessModifier ^<Symbol> = (
 	| ac <Integer> = header >> 28. |
 	0 = ac ifTrue: [^#public].
@@ -1433,16 +1429,19 @@ public accessModifier ^<Symbol> = (
 	halt.
 )
 public source = (
-	metadata isKindOfDebugInfo ifTrue: [^metadata source].
-	metadata isKindOfLazySlotTag ifTrue: [^metadata source].
-   
+        metadata isNil ifTrue: [^nil].
+	metadata isKindOfString ifFalse: [^metadata source].
 	^metadata
 )
 public isSynthetic ^<Boolean> = (
-	^nil = metadata or: [metadata isKindOfLazySlotTag]
+	^nil = metadata or: [metadata isKindOfString  ifTrue: [false] ifFalse: [metadata isLazy]]
 )
 public isLazySlotMethod ^<Boolean> = (
-  ^metadata isKindOfLazySlotTag
+  ^(nil = metadata or: [metadata isKindOfString]) ifTrue: [false] ifFalse: [metadata isLazy]
+)
+public source: s = (
+	(* Can be removed after next bootstrap compiler update. *)
+	metadata: s
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
@@ -2345,6 +2344,15 @@ public ~= other <Object> ^<Boolean> = (
 	^(self = other) not.
 )
 ) : (
+)
+public class MethodMetadata source: s <String> isLazy: b <Boolean> = (
+	|
+    public source <String> = s.
+    public isLazy <Boolean> = b.
+	|
+) (
+) : (
+public source: s <String> ^ <Instance> = (^source: s isLazy: false)
 )
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.

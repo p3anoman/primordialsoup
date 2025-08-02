@@ -4,6 +4,7 @@ class IntermediatesForPrimordialSoup usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private Map = p collections Map.
 private Method = k Method.
+private MethodMetadata = k MethodMetadata.
 |) (
 public class IntermediateClassDeclaration = (|
 public simpleName
@@ -106,7 +107,7 @@ public compiledMethod ^<CompiledMethod> = (
 			[assert: [source isKindOfString] message: 'Missing source'.
 			 method metadata: source].
              
-    isLazySlotMethod ifTrue: [method metadata: (LazySlotTag source: source)].
+    isLazySlotMethod ifTrue: [method metadata: (MethodMetadata source: source isLazy: true)].
 
 	literals:: nil.
 	bytes:: nil.
@@ -308,16 +309,6 @@ public initMethodNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
 public slotNameForLazySlotNamed: selector <Symbol> ^ <Symbol> = (
   ^(selector, '`cache`slot') asSymbol
 )
-)
-class LazySlotTag source: s <String> = (
-	|
-	public source <String> = s.
-	|
-) (
-public isKindOfLazySlotTag ^ <Booelan> = (
-  ^true
-)
-) : (
 )
 ) : (
 )

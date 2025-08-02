@@ -23,6 +23,7 @@ private False = k False.
 private UndefinedObject = k UndefinedObject.
 private Fraction = k Fraction.
 private Method = k Method.
+private MethodMetadata = k MethodMetadata.
 private Class = k Class.
 private InstanceMixin = k InstanceMixin.
 private ClassMixin = k ClassMixin.
@@ -806,48 +807,6 @@ replaceSymbolTable = (
 	(* registerRef: expects we've already traced the object. *)
 	refs at: newSymbolTable put: 0.
 )
-public snapshotApp: app withRuntime: runtime keepSource: s = (
-	| newPlatform newKernel methods objectStore |
-	keepSource:: s.
-	newKernel:: runtime InternalKernel new.
-	newPlatform:: runtime Platform internalKernel: newKernel.
-	objectStore:: newKernel
-		buildObjectStoreWithApplication: app
-		platform: newPlatform
-		symbols: symbolTablePlaceholder.
-
-	slotOf: newKernel _Object at: 1 put: nil. (* superclass *)
-	methods:: slotOf: newKernel _Object at: 2.
-	1 to: methods size do: [:index |
-		| method = methods at: index. |
-		method selector = #'initializer`new' ifTrue: [
-			method header: 200 << 16. (* public + return self *)
-			method bytecode: nil]].
-
-	replaceClass: Activation with: newKernel Activation.
-	replaceClass: Array with: newKernel _Array.
-	replaceClass: ByteArray with: newKernel ByteArray.
-	replaceClass: String with: newKernel String.
-	replaceClass: Closure with: newKernel Closure.
-	replaceClass: Ephemeron with: newKernel Ephemeron.
-	replaceClass: SmallInteger with: newKernel SmallInteger.
-	replaceClass: MediumInteger with: newKernel MediumInteger.
-	replaceClass: LargeInteger with: newKernel LargeInteger.
-	replaceClass: WeakArray with: newKernel WeakArray.
-
-	replaceClass: True with: newKernel True.
-	replaceClass: False with: newKernel False.
-	replaceClass: UndefinedObject with: newKernel UndefinedObject.
-	replaceClass: Fraction with: newKernel Fraction.
-	replaceClass: Object with: newKernel _Object.
-	replaceClass: Method with: newKernel Method.
-	replaceClass: Class with: newKernel Class.
-	replaceClass: Metaclass with: newKernel Metaclass.
-	replaceClass: InstanceMixin with: newKernel InstanceMixin.
-	replaceClass: ClassMixin with: newKernel ClassMixin.
-
-	^serialize: objectStore
-)
 writeRef: object = (
 	^super writeRef: (replacements atOrItself: object)
 )
@@ -897,6 +856,49 @@ replaceMethod: method = (
 		 newMethod selector: method selector.
 		 newMethod metadata: (keepSource ifTrue: [method metadata] ifFalse: [nil = method metadata ifFalse: [0]]).
 		 newMethod]
+)
+public snapshotApp: app withRuntime: runtime keepSource: s = (
+	| newPlatform newKernel methods objectStore |
+	keepSource:: s.
+	newKernel:: runtime InternalKernel new.
+	newPlatform:: runtime Platform internalKernel: newKernel.
+	objectStore:: newKernel
+		buildObjectStoreWithApplication: app
+		platform: newPlatform
+		symbols: symbolTablePlaceholder.
+
+	slotOf: newKernel _Object at: 1 put: nil. (* superclass *)
+	methods:: slotOf: newKernel _Object at: 2.
+	1 to: methods size do: [:index |
+		| method = methods at: index. |
+		method selector = #'initializer`new' ifTrue: [
+			method header: 200 << 16. (* public + return self *)
+			method bytecode: nil]].
+
+	replaceClass: Activation with: newKernel Activation.
+	replaceClass: Array with: newKernel _Array.
+	replaceClass: ByteArray with: newKernel ByteArray.
+	replaceClass: String with: newKernel String.
+	replaceClass: Closure with: newKernel Closure.
+	replaceClass: Ephemeron with: newKernel Ephemeron.
+	replaceClass: SmallInteger with: newKernel SmallInteger.
+	replaceClass: MediumInteger with: newKernel MediumInteger.
+	replaceClass: LargeInteger with: newKernel LargeInteger.
+	replaceClass: WeakArray with: newKernel WeakArray.
+
+	replaceClass: True with: newKernel True.
+	replaceClass: False with: newKernel False.
+	replaceClass: UndefinedObject with: newKernel UndefinedObject.
+	replaceClass: Fraction with: newKernel Fraction.
+	replaceClass: Object with: newKernel _Object.
+	replaceClass: Method with: newKernel Method.
+    replaceClass: MethodMetadata with: newKernel MethodMetadata.
+	replaceClass: Class with: newKernel Class.
+	replaceClass: Metaclass with: newKernel Metaclass.
+	replaceClass: InstanceMixin with: newKernel InstanceMixin.
+	replaceClass: ClassMixin with: newKernel ClassMixin.
+
+	^serialize: objectStore
 )
 ) : (
 )
