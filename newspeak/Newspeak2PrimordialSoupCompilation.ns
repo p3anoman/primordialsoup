@@ -47,7 +47,7 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private IntermediateSlotDeclaration = i IntermediateSlotDeclaration.
 	private IntermediateMethod = i IntermediateMethod.
 	private IntermediateMixin = i IntermediateMixin.
-	private IntermediateLazySlot = i IntermediateLazySlot.
+	IntermediateLazySlot = i IntermediateLazySlot.
 	public  parser <CommonParser> = ns3Parser CommonParser new.
 |) (
 public class Compiler = super Compiler (
@@ -2097,26 +2097,6 @@ buildIncrementalScopeFor: mm <MixinMirror> = (
 		ce enclosingClass: thisClass.
 		currentScope at: c name put: ce].
 )
-private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
-	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
-
-	checkForDuplicateNames: node.
-
-	headerNode:: node header.
-	classDecl:: IntermediateClassDeclaration new.
-	classDecl simpleName: headerNode name.
-	classDecl headerSource: (sourceForNode: headerNode).
-	classDecl factoryName: headerNode constructor selector.
-	classDecl comment: (headerNode classComment isNil ifTrue: [''] ifFalse: [headerNode classComment]).
-	classDecl category: headerNode category.
-
-	currentDepth:: currentDepth + 1.
-	within: classDecl instanceSide compileInstanceSide: node.
-	within: classDecl classSide compileClassSide: node.
-	currentDepth:: currentDepth - 1.
-
-	^classDecl
-)
 public compileClassHeader2: src <String> within: enclosing <InstanceMixin> ^<IntermediateClassDeclaration> = (
 	| tree <ClassDeclarationAST> intermediate <IntermediateClassDeclaration>  |
 
@@ -2215,15 +2195,6 @@ public compileExpressionSource: src <String> debugMapper: debugMapper <MethodCon
 	(* Rewrite and compile *)
 	^compileMethod: method
 )
-private compileMethod: node <MethodAST> ^<IntermediateMethod> = (
-	| result capturedMap |
-	result:: rewriter methodNode: node inScope: currentScope.
-	capturedMap:: result apply: ClosureRewriter1 new.
-	result:: result apply: (ClosureRewriter2 with: capturedMap).
-	result:: result apply: methodCompiler.
-	result source: (sourceForNode: node).
-	^result
-)
 public compileMethodSource: src <String> within: enclosing <IntermediateMixin> ^<IntermediateMethod> = (
 	| tree <MethodAST> |
 
@@ -2237,12 +2208,6 @@ public compileMethodSource: src <String> within: enclosing <IntermediateMixin> ^
 
 	^compileMethod: tree.
 )
-private compileSyntheticMethod: node <MethodAST> ^<IntermediateMethod> = (
-	| result <IntermediateMethod> |
-	result:: compileMethod: node.
-	result isSynthetic: true.
-	^result
-)
 computeSlotInitializersFor: aNode <ClassHeaderAST> ^ <Collection[StmtAST]> = (
 	^(aNode slots reject: [:slot | slot initializer isNil]) collect:
 		[:slot <SlotDefAST> |
@@ -2255,34 +2220,6 @@ computeSlotInitializersFor: aNode <ClassHeaderAST> ^ <Collection[StmtAST]> = (
 		UnresolvedSendAST new message: aMsg;
 			receiver: (selfNode start: aMsg start; end: aMsg end);
 			copyPositionFrom: slot].
-)
-private createNestedClassAccessorFrom: nestedClassNode <ClassDeclarationAST | MixinApplicationClassAST> = (
-	(* Create an accessor method for the nested class represented by the incoming class tree. This accessor will lazily generate the nested class when its enclosing instance is first asked for it. *)
-	|
-	simpleName <String>
-	ast <MethodAST>
-	hdr <ClassHeaderAST>
-	classTree <NormalSendAST>
-	|
-
-	simpleName:: nestedClassNode name.
-	classTree:: nestedClassNode isKindOfMixinApplicationClassAST
-		ifTrue:
-			[astForComputingMixinApplicationClassDeclaration: simpleName
-				superCall: nestedClassNode inheritanceChain first
-				iList: (allButFirstOf: nestedClassNode inheritanceChain)
-				factoryName: nestedClassNode constructor selector]
-		ifFalse:
-			[hdr:: nestedClassNode header.
-			astForComputingClassDeclaration: simpleName
-				superCall: hdr superCall
-				iList: (allButFirstOf: hdr inheritanceChain)].
-	ast:: accessorASTForNestedClassNamed: simpleName
-		classTree: classTree
-		accessModifier: nestedClassNode accessModifier.
-	ast copyPositionFrom: nestedClassNode header.
-
-	^compileSyntheticMethod: ast
 )
 enclosingObjectTreeFor: c <ExpressionAST> ^ <NormalSendAST> = (
 	^UnresolvedSendAST new
@@ -2339,36 +2276,6 @@ of the various mixin applications produced conflict with each other.
 )
 initializerSelectorNameFor: selector <Symbol> ^<Symbol> = (
 	^('initializer`', selector) asSymbol
-)
-mixinApplicationClassNode: nc <MixinApplicationClassAST>
- in: mixinIR <IntermediateMixin>
- category: cat <String>
- ^<IntermediateClassDeclaration> = (
-	|
-	classDecl = IntermediateClassDeclaration new.
-	scope <Scope> = scopeMap at: nc.
-	init <IntermediateMethod> =
-		processMethod: (mixinApplicationInitializerFor: nc) inScope: scope in: classDecl instanceSide.
-	iListSource <String>
-	hdrSource <String>
-	cmm <CompiledMixinMirror>
-	|
-	classDecl simpleName: nc name.
-	iListSource:: nc inheritanceChain allButLast
-		 inject: '' into: [:s : e | s, (sourceForNode: e), ' <: '].
-	iListSource:: iListSource, (sourceForNode: nc inheritanceChain last).
-	hdrSource:: nc name, ' ',  (sourceForNode: nc constructor), ' = ', iListSource, '.'.
-
-	classDecl headerSource: hdrSource.
-	classDecl factoryName: nc constructor selector.
-	classDecl category: cat.
-	classDecl comment: ''.
-	init isSubinitializer: true.
-	init metadata at: #hasBody put: false.
-	(* classDecl instanceSide methods add: init.*)
-	processFactoryFor: nc inScope: scope in: classDecl classSide.
-	classDecl initializers: (List new add: init; yourself). (* is this it? *)
-	^classDecl
 )
 mixinApplicationInitializerFor: classDef <MixinApplicationClassAST> ^ <MethodAST> = (
 	(* Probably migrate to superclass *)
@@ -2544,11 +2451,6 @@ private within: mixinIR <IntermediateMixin> compileInitializers: headerNode <Cla
 		compileSyntheticMethod: (astForClassDeclarationInitializer: headerNode).
 	}.
 )
-private within: mixinIR <IntermediateMixin> compileMethod: methodNode <MethodAST> = (
-	| methodIR = compileMethod: methodNode. |
-	methodIR category: 'as yet unclassified'.
-	mixinIR methods add: methodIR.
-)
 private within: mixinIR <IntermediateMixin> compileSlot: slotNode <SlotDefAST> = (
 	| slotIR = IntermediateSlotDeclaration new. |
 	slotIR name: slotNode name.
@@ -2591,22 +2493,6 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 public parser = (
   ^outer Newspeak2PrimordialSoupCompilation parser
 )
-public compileLazySlotSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateLazySlot> = (
-	| tree <SlotDefAST> |
-
-	currentSource:: src.
-	currentScope:: Scope new.
-	currentDepth:: 0.
-
-	buildIncrementalScopeFor: enclosingIR.
-
-	tree:: parser parseLazySlotDeclaration: src.
-
-	^within: enclosingIR compileLazySlotNoAdd: tree
-)
-private within: mixinIR <IntermediateMixin> compileLazySlot: lazySlotNode <SlotDefAST> = (
-	mixinIR lazySlots add: (within: mixinIR compileLazySlotNoAdd: lazySlotNode)
-)
 private within: mixinIR <IntermediateMixin> compileInstanceSide: classNode <ClassDeclarationAST> = (
 	| thisClass <ClassEntry> |
 	thisClass:: currentScope at: classNode name.
@@ -2631,153 +2517,121 @@ private within: mixinIR <IntermediateMixin> compileInstanceSide: classNode <Clas
 
 	popScope.
 )
-astForLazySlotSetter: tree <SlotDefAST> = (
-	| cacheSlotName selector assignToSlot newValueParameter parameterName parameter stmts = List new. |
+public compileLazySlotSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateLazySlot> = (
+	| tree <SlotDefAST> |
 
-	selector:: tree name asSymbol.
-	cacheSlotName:: IntermediateLazySlot slotNameForLazySlotNamed: selector.
-	parameterName:: #p1.
+	currentSource:: src.
+	currentScope:: Scope new.
+	currentDepth:: 0.
 
-	parameter:: UnresolvedSendAST new
-		to: hereNode
-		send: parameterName
-		with: {}.
+	buildIncrementalScopeFor: enclosingIR.
 
-	assignToSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: (cacheSlotName, ':') asSymbol
-		with: {parameter}.
+	tree:: parser parseLazySlotDeclaration: src.
 
-    stmts add: assignToSlot.
-	newValueParameter:: VarDeclAST name: parameterName type: nil.
-
-	^MethodAST new
-		pattern: (MessagePatternAST new
-			accessModifier: tree accessModifier;
-			selector: (selector, ':') asSymbol
-			parameters: { newValueParameter});
-		body: (CodeBodyAST new
-			parameters: {newValueParameter}
-			temporaries: {}
-			statements: stmts);
-		copyPositionFrom: tree
+	^compileLazySlotNoAdd: tree
 )
-astForLazySlotGetter: tree <SlotDefAST> = (
-(* Build an AST for a method that would lazily create a execute the expression in a lazy slot, and cache it. The generated code has the form
-
-simpleName = (
-	self simpleName`slot isNil ifTrue:
-		[self simpleName`slot: initLazySlotExpression].
-	^self simpleName`slot
+compileMethod: node <MethodAST> ^<IntermediateMethod> = (
+	| result capturedMap |
+	result:: rewriter methodNode: node inScope: currentScope.
+	capturedMap:: result apply: ClosureRewriter1 new.
+	result:: result apply: (ClosureRewriter2 with: capturedMap).
+	result:: result apply: methodCompiler.
+	result source: (sourceForNode: node).
+	^result
 )
-
-*)
-
-	| initMethodName cacheSlotName selector cacheSlot  assignSlot nilCheck block if return initValue  
-    stmts = List new. 
-    blockStmts = List new.
-    |
-
-	selector:: tree name asSymbol.
-
-	initMethodName:: IntermediateLazySlot initMethodNameForLazySlotNamed: selector.
-	cacheSlotName:: IntermediateLazySlot slotNameForLazySlotNamed: selector.
-
-	cacheSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: cacheSlotName with: {}.
-
-
-	initValue:: UnresolvedSendAST new
-		to: selfNode
-		send: initMethodName
-		with: {}.
-
-
-	assignSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: (cacheSlotName, ':') asSymbol
-		with: {initValue}.
-
-	nilCheck:: UnresolvedSendAST new
-		to: cacheSlot
-		send: #isNil
-		with: {}.
-
-    blockStmts add: assignSlot.
-	block:: BlockAST new
-		body: (CodeBodyAST new
-			parameters: {}
-			temporaries: {}
-			statements: blockStmts).
-
-	if:: UnresolvedSendAST new
-		to: nilCheck
-		send: #ifTrue:
-		with: {block}.
-	return:: ReturnStatAST new expression: cacheSlot.
-    stmts add: if; add: return.
-
-	^MethodAST new
-		pattern: (MessagePatternAST new
-			accessModifier: tree accessModifier;
-			selector: selector
-			parameters: {});
-		body: (CodeBodyAST new
-			parameters: {}
-			temporaries: {}
-			statements: stmts);
-		copyPositionFrom: tree
+compileSyntheticMethod: node <MethodAST> ^<IntermediateMethod> = (
+	| result <IntermediateMethod> |
+	result:: compileMethod: node.
+	result isSynthetic: true.
+	^result
 )
-astForLazySlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
-	| 
-    initializer 
-    initMethodName <Symbol>
-    selector <String>
-    messagePattern <MessagePatternAST>
-    body <CodeBodyAST>
-    return <ReturnStatAST>
-    newAST <MethodAST>
-    binding <String> = tree isMutable ifTrue: [' ::= '] ifFalse: [' = '].
-    newSource <String>
-    stmts <List> = List new.  
-    |
+createNestedClassAccessorFrom: nestedClassNode <ClassDeclarationAST | MixinApplicationClassAST> = (
+	(* Create an accessor method for the nested class represented by the incoming class tree. This accessor will lazily generate the nested class when its enclosing instance is first asked for it. *)
+	|
+	simpleName <String>
+	ast <MethodAST>
+	hdr <ClassHeaderAST>
+	classTree <NormalSendAST>
+	|
 
+	simpleName:: nestedClassNode name.
+	classTree:: nestedClassNode isKindOfMixinApplicationClassAST
+		ifTrue:
+			[astForComputingMixinApplicationClassDeclaration: simpleName
+				superCall: nestedClassNode inheritanceChain first
+				iList: (allButFirstOf: nestedClassNode inheritanceChain)
+				factoryName: nestedClassNode constructor selector]
+		ifFalse:
+			[hdr:: nestedClassNode header.
+			astForComputingClassDeclaration: simpleName
+				superCall: hdr superCall
+				iList: (allButFirstOf: hdr inheritanceChain)].
+	ast:: accessorASTForNestedClassNamed: simpleName
+		classTree: classTree
+		accessModifier: nestedClassNode accessModifier.
+	ast copyPositionFrom: nestedClassNode header.
 
-	selector:: tree name.
-	initializer:: tree initializer.
-
-	initMethodName:: IntermediateLazySlot initMethodNameForLazySlotNamed: selector.
-
-	messagePattern:: (MessagePatternAST new
-		selector: initMethodName;
-		accessModifier: #protected;
-		parameters: {}).
-
-	return:: ReturnStatAST new
-		expression: initializer;
-		yourself.
-
-    stmts add: return.
-	body:: (CodeBodyAST new
-		parameters: {}
-		temporaries: {}
-	      statements: stmts).
-
-
-	newAST:: MethodAST new
-		pattern: messagePattern;
-		body: body;
-		copyPositionFrom: tree.
-
-    newSource:: selector, binding, (sourceForNode: initializer).
-	astAndSourceBlock value: newAST value: newSource.
+	^compileSyntheticMethod: ast
 )
-private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <SlotDefAST> ^ <IntermediateLazySlot> = (
+private within: mixinIR <IntermediateMixin> compileLazySlot: lazySlotNode <SlotDefAST> = (
+	mixinIR lazySlots add: (compileLazySlotNoAdd: lazySlotNode)
+)
+compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
+	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
+
+	checkForDuplicateNames: node.
+
+	headerNode:: node header.
+	classDecl:: IntermediateClassDeclaration new.
+	classDecl simpleName: headerNode name.
+	classDecl headerSource: (sourceForNode: headerNode).
+	classDecl factoryName: headerNode constructor selector.
+	classDecl comment: (headerNode classComment isNil ifTrue: [''] ifFalse: [headerNode classComment]).
+	currentDepth:: currentDepth + 1.
+	within: classDecl instanceSide compileInstanceSide: node.
+	within: classDecl classSide compileClassSide: node.
+	currentDepth:: currentDepth - 1.
+
+	^classDecl
+)
+private within: mixinIR <IntermediateMixin> compileMethod: methodNode <MethodAST> = (
+	| methodIR = compileMethod: methodNode. |
+
+	mixinIR methods add: methodIR.
+)
+mixinApplicationClassNode: nc <MixinApplicationClassAST>
+ in: mixinIR <IntermediateMixin>
+ category: cat <String>
+ ^<IntermediateClassDeclaration> = (
+	|
+	classDecl = IntermediateClassDeclaration new.
+	scope <Scope> = scopeMap at: nc.
+	init <IntermediateMethod> =
+		processMethod: (mixinApplicationInitializerFor: nc) inScope: scope in: classDecl instanceSide.
+	iListSource <String>
+	hdrSource <String>
+	cmm <CompiledMixinMirror>
+	|
+	classDecl simpleName: nc name.
+	iListSource:: nc inheritanceChain allButLast
+		 inject: '' into: [:s : e | s, (sourceForNode: e), ' <: '].
+	iListSource:: iListSource, (sourceForNode: nc inheritanceChain last).
+	hdrSource:: nc name, ' ',  (sourceForNode: nc constructor), ' = ', iListSource, '.'.
+
+	classDecl headerSource: hdrSource.
+	classDecl factoryName: nc constructor selector.
+	classDecl comment: ''.
+	init isSubinitializer: true.
+	init metadata at: #hasBody put: false.
+	(* classDecl instanceSide methods add: init.*)
+	processFactoryFor: nc inScope: scope in: classDecl classSide.
+	classDecl initializers: (List new add: init; yourself). (* is this it? *)
+	^classDecl
+)
+compileLazySlotNoAdd: tree <SlotDefAST> ^ <IntermediateLazySlot> = (
 	| 
     intermediateLS <IntermediateLazySlot> 
     treeMainMethod <SlotDefAST>
-    mixinIR <IntermediateMixin>
     initMethod <IntermediateMethod>  
     mainMethod <IntermediateMethod>
     category <Symbol>
@@ -2785,7 +2639,6 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
     |
 
 	category:: #'lazyslots'.
-	mixinIR: enclosingIR.
 	intermediateLS:: IntermediateLazySlot new.
 	source:: sourceForNode: tree.
 
@@ -2796,7 +2649,6 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
 		[:treeInitMethod :newSource |
 		initMethod:: compileMethod: treeInitMethod.
 		initMethod isSynthetic: true.
-		initMethod category: category.
 		initMethod source: newSource.
 		intermediateLS intermediateInitMethod: initMethod].
 
@@ -2804,7 +2656,6 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
 	treeMainMethod:: astForLazySlotGetter: tree.
 	mainMethod:: compileMethod: treeMainMethod.
 	mainMethod isSynthetic: true.
-	mainMethod category: category.
 	mainMethod source: source, '.'.
 	intermediateLS intermediateMainMethod: mainMethod.
 
@@ -2813,8 +2664,6 @@ private within: enclosingIR <IntermediateMixin> compileLazySlotNoAdd: tree <Slot
 		[ | treeSetterMethod setterMethod |
 		treeSetterMethod:: astForLazySlotSetter: tree.
 		setterMethod:: compileMethod: treeSetterMethod.
-		setterMethod isSynthetic: true.
-		setterMethod category: category.
 		intermediateLS intermediateSetterMethod: setterMethod].
 
 	^intermediateLS

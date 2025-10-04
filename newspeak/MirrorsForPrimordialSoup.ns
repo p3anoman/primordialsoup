@@ -2536,12 +2536,6 @@ public compile: newSource ifFail: onFail ^<Mirror> = (
 		on: Error
 		do: [:ex | ^onFail value: ex description].
 )
-computeSender = (
-	| lowLevelSender |
-	lowLevelSender:: lowLevelActivationMirror sender sender. (* the first sender skips the main method for the lazy slot. It should not show in the debugger *)
-	lowLevelSender ifNil: [ ^nil].
-	^threadMirror activationFromLowLevelActivation: lowLevelSender.
-)
 public localNamesWithValuesDo: action <[:String :ObjectMirror]> = (
 	(* lazy slots do not have local variables (temp or parameters) . It's just an expression*)
 	^{}
@@ -2562,8 +2556,14 @@ public sourceRange ^ <Interval> = (
 	| methodRange |
 
 	methodRange:: lowLevelActivationMirror sourceRangeIn: threadMirror lowLevelThreadMirror.
-	methodRange ifNil: [ ^nil].
+	methodRange isNil ifTrue: [ ^nil].
 	^method rangeFromLazySlotExpressionToMethod: methodRange.
+)
+computeSender = (
+	| lowLevelSender |
+	lowLevelSender:: lowLevelActivationMirror sender sender. (* the first sender skips the main method for the lazy slot. It should not show in the debugger *)
+	lowLevelSender isNil ifTrue: [ ^nil].
+	^threadMirror activationFromLowLevelActivation: lowLevelSender.
 )
 ) : (
 public handleActivation: aLowLevelActivation <AcivationMirror> whenCreated: createdBlock whenContextUpdated: contextUpdatedBlock on: aThreadMirror = (

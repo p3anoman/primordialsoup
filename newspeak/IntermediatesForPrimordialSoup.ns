@@ -53,8 +53,6 @@ public methodMixin <AbstractMixin>
 public source <String>
 public primitive ::= 0.
 public accessModifier <Symbol>
-
-public category
 public isSynthetic ::= false.
 public isLazySlotMethod <Boolean> ::= false.
 public builder
