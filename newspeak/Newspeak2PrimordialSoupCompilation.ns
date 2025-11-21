@@ -576,6 +576,10 @@ public mapBCI: bci <Integer> to: src <interval> = (
 public mapperForContext: ctxt = (
 	^DebugMapper forContext: ctxt usingDebugInfo: self.
 )
+public isLazy ^ <Boolean> = (
+  (* A lazy method never has debug info as its metadata (is that true?) *)
+  ^false
+)
 ) : (
 )
 class DebugMapper forContext: ctxt usingDebugInfo: dbgInfo = (|
