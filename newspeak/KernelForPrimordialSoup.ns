@@ -1724,10 +1724,6 @@ public asSymbol ^<String> = (
 	(isCanonical: self) ifTrue: [^self].
 	^intern: self.
 )
-public at: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 51 *)
-	^(ArgumentError value: index) signal
-)
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
@@ -1779,10 +1775,6 @@ public out = (
 public printString ^<String> = (
 	^'''', self, ''''
 )
-public runeAt: index = (
-	(* :bogus: *)
-	^self at: index
-)
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
 	halt.
@@ -1812,6 +1804,31 @@ public withoutNbsp = (
 			[ | nonbreakingSpace = String fromRune: 160.
 			space = String fromRune: 32. |
 			^replaceAll: nonbreakingSpace with: space]
+)
+public runeAt: index <Integer> ^ <Integer> = (
+	(* :bogus: *)
+	^self at: index
+)
+public at: index <Integer> ^ <Integer> = (
+	(* :literalmessage: primitive: 51 *)
+	^(ArgumentError value: index) signal
+)
+public asLowercase  = (
+  | lowered = Array new: size. |
+  1 to: size do: [:i |  | c = self at: i. |
+     lowered at: i put: ((c between: 65 and: 90) ifTrue: [c + 32] ifFalse: [c])
+     ].
+  ^String withAll: lowered.
+)
+public asUppercase  = (
+  | uppered = Array new: size. |
+  1 to: size do: [:i |  | c = self at: i. |
+     uppered at: i put: ((c between: 97 and: 122) ifTrue: [c - 32] ifFalse: [c])
+     ].
+  ^String withAll: uppered.
+)
+public includesSubstring: s  <ByteArray | String> ^ <Boolean> = (
+  ^0 ~= (indexOf: s startingAt: 1)
 )
 ) : (
 public cr ^ <Instance> = (
