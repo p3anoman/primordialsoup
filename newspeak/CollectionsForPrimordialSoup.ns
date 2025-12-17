@@ -164,6 +164,10 @@ public with: other <List[X def]> do: action <[:E :X]> = (
 		[:index <Integer> |
  action value: (at: index) value: (other at: index)].
  )
+public tail ^ <List[E]>= (
+  size < 2 ifTrue: [^List new].
+  ^self copyFrom: 2 to: size.
+)
 ) : (
 public new ^ <List[E]> = (
 	^self new: 3
