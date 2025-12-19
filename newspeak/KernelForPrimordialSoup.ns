@@ -1830,6 +1830,123 @@ public asUppercase  = (
 public includesSubstring: s  <ByteArray | String> ^ <Boolean> = (
   ^0 ~= (indexOf: s startingAt: 1)
 )
+public splitOnWhitespace ^ <Array[String]> = (
+    | partCount ::= 0.
+      inWord ::= false.
+      wordStart <Integer>
+      parts <Array[String]> 
+      partIndex ::= 0.
+    |
+
+    (* First pass: count parts *)
+    1 to: size do: [:i |
+      | char = at: i. |
+      char <= 32
+        ifTrue: [
+          inWord ifTrue: [
+            partCount:: partCount + 1.
+            inWord:: false
+          ]
+        ]
+        ifFalse: [
+          inWord ifFalse: [inWord:: true]
+        ]
+    ].
+    inWord ifTrue: [partCount:: partCount + 1].
+
+    (* Second pass: extract parts *)
+
+    parts:: Array new: partCount.
+    inWord:: false.
+
+    1 to: size do: [:i |
+      | char = at: i. |
+      char <= 32
+        ifTrue: [
+          inWord ifTrue: [
+            partIndex:: partIndex + 1.
+            parts at: partIndex put: (copyFrom: wordStart to: i - 1).
+            inWord:: false
+          ]
+        ]
+        ifFalse: [
+          inWord ifFalse: [
+            wordStart:: i.
+            inWord:: true
+          ]
+        ]
+    ].
+    inWord ifTrue: [
+      partIndex:: partIndex + 1.
+      parts at: partIndex put: (copyFrom: wordStart to: size)
+    ].
+
+    ^parts
+)
+public findTokens: separators <String | ByteArray> ^ <Array[String]> = (
+    | partCount ::= 0.
+      inWord ::= false.
+      parts
+      partIndex
+      wordStart <Integer>
+      isSeparator
+    |
+
+    (* First pass: count parts *)
+    1 to: size do: [:i |
+      | char = at: i. |
+      isSeparator:: false.
+      1 to: separators size do: [:j |
+        (separators at: j) = char ifTrue: [isSeparator:: true]
+      ].
+
+      isSeparator
+        ifTrue: [
+          inWord ifTrue: [
+            partCount:: partCount + 1.
+            inWord:: false
+          ]
+        ]
+        ifFalse: [
+          inWord ifFalse: [inWord:: true]
+        ]
+    ].
+    inWord ifTrue: [partCount:: partCount + 1].
+
+    (* Second pass: extract parts *)
+    parts:: Array new: partCount.
+    partIndex:: 0.
+    inWord:: false.
+
+    1 to: size do: [:i |
+      | char = at: i. |
+      isSeparator:: false.
+      1 to: separators size do: [:j |
+        (separators at: j) = char ifTrue: [isSeparator:: true]
+      ].
+
+      isSeparator
+        ifTrue: [
+          inWord ifTrue: [
+            partIndex:: partIndex + 1.
+            parts at: partIndex put: (copyFrom: wordStart to: i - 1).
+            inWord:: false
+          ]
+        ]
+        ifFalse: [
+          inWord ifFalse: [
+            wordStart:: i.
+            inWord:: true
+          ]
+        ]
+    ].
+    inWord ifTrue: [
+      partIndex:: partIndex + 1.
+      parts at: partIndex put: (copyFrom: wordStart to: size)
+    ].
+
+    ^parts
+  )
 ) : (
 public cr ^ <Instance> = (
   ^with: 13
