@@ -965,7 +965,7 @@ public nestedClasses = (
 	^MirrorGroup wrapping: results
 )
 public slots ^<Collection[SlotDeclarationMirror]> = (
-	| cls <Behavior> classes result <Collection[SlotDeclarationMirror]> |
+  | cls <Behavior> classes result <Collection[SlotDeclarationMirror]> |
 	cls:: reflectee.
 	classes:: List new.
 	result:: List new.
@@ -974,8 +974,10 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 		cls:: superclassOf: cls].
 	classes size to: 1 by: -1 do:
 		[:index |
+		| currentMixin |
 		cls:: classes at: index.
-		(mixinOf: cls) _slots do:
+		currentMixin:: mixinOf: cls.
+		currentMixin _slots do:
 			[:slotDescriptor |
 			| name isMutable accessModifier |
 			name:: slotDescriptor at: 1.
@@ -1049,6 +1051,9 @@ public hash ^<Integer> = (
 )
 public isKindOfMethodMirror ^<Boolean> = (
 	^true
+)
+public isSynthetic ^<Boolean> = (
+	^method isSynthetic
 )
 public name = (
 	^method selector
@@ -1239,13 +1244,29 @@ public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 public primaryFactorySelector ^ <Symbol> = (
   ^isMeta ifFalse: [mixin _primaryFactorySelector] ifTrue: [mixin _instanceMixin _primaryFactorySelector].
 )
+public primaryFactoryMethod ^ <MethodMirror> = (
+  (* Return the MethodMirror for the primary factory, even if it's synthetic.
+     Works whether called on instance mixin or class mixin. *)
+  |
+  selector <Symbol> = primaryFactorySelector.
+  classMixin <AbstractMixin> = isMeta ifTrue: [mixin] ifFalse: [mixin _classMixin].
+  methods = classMixin _methods.
+  |
+  methods do: [:method |
+    method selector = selector ifTrue: [
+      ^MethodMirror reflecting: method
+    ]
+  ].
+)
 public slots ^<Collection[SlotDeclarationMirror]> = (
 	| results = List new. |
 	mixin _slots do: [:slotDescriptor |
-		| slotName isMutable accessModifier |
-		slotName:: slotDescriptor at: 1.
-		isMutable:: slotDescriptor at: 2.
-		accessModifier:: slotDescriptor at: 3.
+          |
+          slotName = slotDescriptor at: 1.
+          isMutable =  slotDescriptor at: 2.
+          accessModifier = slotDescriptor at: 3.
+          |
+
 		0 = (slotName indexOf: '`') ifTrue: (* not synthetic *)
 			[results add: (SlotDeclarationMirror
 				name: slotName
@@ -2075,6 +2096,15 @@ public definingMixin = mxn.
 |) (
 public isKindOfSlotDeclarationMirror ^<Boolean> = (
 	^true
+)
+public source ^<String> = (
+	| headerSource headerAst slotAst slotSource |
+	headerSource:: definingMixin declaration header source.
+	headerAst:: (parsing Parser for: headerSource) advanceToken parseClassHeader.
+	slotAst:: headerAst slots detect: [:s | s name = name] ifNone: [^'(* source unavailable *)'].
+	slotSource:: headerSource copyFrom: slotAst start to: slotAst end.
+	(* Append dot if not present, as parser expects it *)
+	^(slotSource endsWith: '.') ifTrue: [slotSource] ifFalse: [slotSource, '.']
 )
 ) : (
 )
