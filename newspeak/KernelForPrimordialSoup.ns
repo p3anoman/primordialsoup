@@ -2393,33 +2393,33 @@ public == other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 86 *)
 	halt.
 )
-protected Array = (
+protected Array ^ <_Array class> = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup _Array
 )
-protected ByteArray = (
+protected ByteArray ^ <ByteArray class> = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup ByteArray
 )
-protected Error = (
+protected Error ^ <Exception class> = (
 	(* squeak compatibility *)
 	^outer KernelForPrimordialSoup Exception
 )
-protected Exception = (
+protected Exception ^ <Exception class> = (
 	^outer KernelForPrimordialSoup Exception
 )
-protected Float = (
+protected Float ^ <Float class> = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup Float
 )
-protected Integer = (
+protected Integer ^ <Integer class> = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup Integer
 )
-protected Object = (
+protected Object ^ <_Object class> = (
 	^outer KernelForPrimordialSoup _Object
 )
-protected String = (
+protected String ^ <String class> = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup String
 )
