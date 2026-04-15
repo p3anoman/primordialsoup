@@ -1210,7 +1210,7 @@ public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
 )
 ) : (
 )
-class Integer = Number () (
+public class Integer = Number () (
 public & other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
@@ -1488,7 +1488,7 @@ public printString ^<String> = (
 )
 ) : (
 )
-class Number = () (
+public class Number = () (
 public * other <Number> ^<Number> = (
 	(* Answer the receiver multiplied by the argument. *)
 	(* :literalmessage: primitive: 3 *)
