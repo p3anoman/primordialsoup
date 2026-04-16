@@ -929,18 +929,27 @@ unaryImplicitReceiverSend = (
 	^VariableAST new name: selector; start: tokenStart; end: tokenEnd.
 )
 public parseTypeTerm = (
-       (* typeTerm = typeFactor, identifier star *)
-       | tfactor = parseTypeFactor. operators = List new. end |
-       end:: tfactor end.
+       (* typeTerm = typeFactor, (identifier, typeArguments opt) star *)
+       | result ::= parseTypeFactor. start end tas |
+       start:: result start.
+       end:: result end.
        [tokenKind = #identifier] whileTrue: [
-         operators add: tokenValue.
+         result:: UnaryTypeOpAST new operand: result; operator: tokenValue;
+	                     start: start; end: tokenEnd.
 	 end:: tokenEnd.
 	 advanceToken.
+	 tokenKind = #'[' ifTrue: [
+	   tas:: parseTypeArguments.
+	   tokenKind = #']' ifFalse: [expected: ']'].
+	   end:: tokenEnd.
+	   advanceToken.
+	   result:: ParameterizedTypeAST new generic: result;
+	                                    arguments: tas;
+	                                    start: start;
+	                                    end: end.
+	 ].
        ].
-       ^operators inject: tfactor into: [:te <TypeExpression> :op |
-	   UnaryTypeOpAST new operand: te; operator: op;
-	                     start: te start; end: end
-	   ]
+       ^result
 )
 public parseTupleType = (
        (* tupleType = lcurly, (typeExpr starSeparatedBy: dot), rcurly *)

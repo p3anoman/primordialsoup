@@ -583,6 +583,7 @@ public class TypeIdAST = AST (|
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool typeIdNode: self
 )
+public isKindOfTypeIdAST ^<Boolean> = ( ^true )
 ) : (
 )
 public class UnaryTypeOpAST = AST (| public operand <TypeAST> public operator <Symbol> |) (
