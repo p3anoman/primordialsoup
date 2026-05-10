@@ -857,6 +857,9 @@ replaceMethod: method = (
 		 newMethod metadata: (keepSource ifTrue: [method metadata] ifFalse: [nil = method metadata ifFalse: [0]]).
 		 newMethod]
 )
+public snapshotApp: app withRuntime: runtime = (
+	^snapshotApp: app withRuntime: runtime keepSource: false
+)
 public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
 	keepSource:: s.

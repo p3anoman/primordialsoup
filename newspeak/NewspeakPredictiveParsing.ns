@@ -257,7 +257,7 @@ public parseClassHeader = (
 		superclassClause opt, lparen, classComment opt,
 		slotDecls opt,  initExprs, rparen). *)
 
-	| declStart am name constructor superclassCall comment tempsBody inits declEnd x y |
+	| declStart am name typeParams constructor superclassCall comment tempsBody inits declEnd x y |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
 
@@ -267,6 +267,8 @@ public parseClassHeader = (
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	name:: tokenValue.
 	advanceToken.
+
+	typeParams:: parseTypeParametersOpt.
 
 	(* Cheat: skipping binary message pattern. *)
 	(tokenKind = #identifier or: [tokenKind = #keyword])
@@ -294,6 +296,7 @@ public parseClassHeader = (
 
 	^ClassHeaderAST new
 		name: name asSymbol;
+		typeParameters: typeParams;
 		constructor: constructor;
 		superclassName: superclassCall receiver message selector;
 		superclassCall: superclassCall receiver;
@@ -999,6 +1002,32 @@ public parseBlockArgType = (
 	    ^parseTypeTerm
        ].
        expected: ':'
+)
+public parseTypeParametersOpt ^ <List[Symbol]> = (
+	(* typeParameterDecl opt = ('<', '[', identifier, (',', identifier)*, ']', '>') | empty.
+	   Parses optional type parameter declarations on a class, e.g., <[K, V]>. *)
+	| params = List new. |
+	(tokenKind = #binary and: [tokenValue = '<']) ifFalse: [^params].
+	advanceToken.
+	tokenKind = #'[' ifFalse: [expected: '['].
+	advanceToken.
+	tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+	params add: tokenValue asSymbol.
+	advanceToken.
+	[tokenKind = #binary and: [tokenValue = ',']] whileTrue: [
+		advanceToken.
+		tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+		params add: tokenValue asSymbol.
+		advanceToken.
+	].
+	tokenKind = #']' ifFalse: [expected: ']'].
+	advanceToken.
+	(* Handle '>' vs '>=' the same way parseType does *)
+	tokenKind = #binary ifTrue: [
+		tokenValue = '>' ifTrue: [advanceToken. ^params].
+		tokenValue = '>=' ifTrue: [tokenValue:: '='. ^params].
+	].
+	expected: '>'.
 )
 public parseTypeArguments = (
        (* typeArguments = lbracket, (typeExpr plusSeparatedBy: comma), rbracket *)

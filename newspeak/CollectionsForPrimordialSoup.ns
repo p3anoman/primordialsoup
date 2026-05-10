@@ -6,7 +6,7 @@ class CollectionsForPrimordialSoup usingInternalKernel: ik (* :exemplar:  platfo
 	private ArgumentError = ik ArgumentError.
 	|
 ) (
-public class List new: capacity <Integer> (* :exemplar: List new *) = Collection (
+public class List <[E]> new: capacity <Integer> (* :exemplar: List new *) = Collection (
   (* An ordered collection of elements.
 
 Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be used as an efficient stack, but an inefficient queue.
@@ -176,7 +176,7 @@ public withAll: collection <Collection[E]> ^ <List[E]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
 )
-public class Map new: capacity <Integer> = Collection (
+public class Map <[K, V]> new: capacity <Integer> = Collection (
   (* A collection associating keys to values.
 
 Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, provided the #hash of keys is well distributed.
@@ -418,7 +418,7 @@ public printString = (
 )
 ) : (
 )
-public class Set new: capacity <Integer> = Collection (
+public class Set <[E]> new: capacity <Integer> = Collection (
   (* A collection of elements without duplicates.
 
 Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
