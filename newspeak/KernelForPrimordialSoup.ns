@@ -2075,6 +2075,24 @@ public class UndefinedObject _cannotInstantiate = () (
 public isNil ^<Boolean> = (
 	^true
 )
+public ifNil: nilBlock ^<Object> = (
+	^nilBlock numArgs = 0
+		ifTrue: [nilBlock value]
+		ifFalse: [nilBlock value: self]
+)
+public ifNotNil: notNilBlock ^<Object> = (
+	^self
+)
+public ifNil: nilBlock ifNotNil: notNilBlock ^<Object> = (
+	^nilBlock numArgs = 0
+		ifTrue: [nilBlock value]
+		ifFalse: [nilBlock value: self]
+)
+public ifNotNil: notNilBlock ifNil: nilBlock ^<Object> = (
+	^nilBlock numArgs = 0
+		ifTrue: [nilBlock value]
+		ifFalse: [nilBlock value: self]
+)
 public printString ^<String> = (
 	^'nil'
 )
@@ -2463,6 +2481,24 @@ public identityHash ^<Integer> = (
 )
 public isNil ^<Boolean> = (
 	^false
+)
+public ifNil: nilBlock ^<Object> = (
+	^self
+)
+public ifNotNil: notNilBlock ^<Object> = (
+	^notNilBlock numArgs = 0
+		ifTrue: [notNilBlock value]
+		ifFalse: [notNilBlock value: self]
+)
+public ifNil: nilBlock ifNotNil: notNilBlock ^<Object> = (
+	^notNilBlock numArgs = 0
+		ifTrue: [notNilBlock value]
+		ifFalse: [notNilBlock value: self]
+)
+public ifNotNil: notNilBlock ifNil: nilBlock ^<Object> = (
+	^notNilBlock numArgs = 0
+		ifTrue: [notNilBlock value]
+		ifFalse: [notNilBlock value: self]
 )
 public out = (
 	print:: self printString.
