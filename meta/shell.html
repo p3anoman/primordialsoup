@@ -54,6 +54,9 @@
     <script src="CodeMirror/lib/codemirror.js"></script>
     <link rel="stylesheet" href="CodeMirror/lib/codemirror.css"></link>
     <script src="CodeMirror/addon/display/autorefresh.js"></script>
+    <!-- JSZip is used by the Documents module (Ampleforth) to load and
+         save .zip-bundled documents. -->
+    <script src="jszip.min.js"></script>
     <!-- isomorphic-git + lightning-fs for the MemoryHole web git backend.
          Expose window.git, window.LightningFS, window.GitHttp for the
          Newspeak side to reach via platform js global at: 'git' /
