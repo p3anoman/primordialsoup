@@ -72,6 +72,12 @@ public enclosingActivation ^<ActivationMirror> = (
 	nil = rawEnclosing ifTrue: [^nil].
 	^ActivationMirror reflecting: rawEnclosing thread: thread
 )
+public threadMirror ^<ThreadMirror> = (
+	(* The thread this activation belongs to, wrapped. Named threadMirror
+	   (not thread) to avoid colliding with the private `thread` slot
+	   accessor used inside the class. *)
+	^ThreadMirror reflecting: thread
+)
 public evaluate: expression <String> ^<ThreadMirror> = (
 	^(evaluateSuspended: expression) resume
 )
