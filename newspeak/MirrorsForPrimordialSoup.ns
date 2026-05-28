@@ -2642,10 +2642,10 @@ protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
 )
 public do: action = (
-	intermediate slots do:
-		[:intermediateSlot |
-		action value: (LazySlotMirror
-			reflecting: intermediateSlot name
+	intermediate lazySlots do:
+		[:intermediateLazySlot |
+		action value: (LazySlotBuilder
+			reflecting: intermediateLazySlot
 			in: intermediate builder)].
 )
 public removeMirrorNamed: name <Symbol> = (
