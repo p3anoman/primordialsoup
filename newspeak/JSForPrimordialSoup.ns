@@ -140,9 +140,15 @@ private rawPopAgain = (
 )
 private rawPush: object = (
 	(* :literalmessage: primitive: 154 *)
-	object isKindOfClosure
-		ifTrue: [pushExpat: object]
-		ifFalse: [rawPushAlien: object index]
+	object isKindOfClosure ifTrue: [^pushExpat: object].
+	object isKindOfJSAlien ifTrue: [^rawPushAlien: object index].
+	^Error signal:
+		'rawPush: cannot marshal this receiver across the JS bridge. ',
+		'The receiver must be either an Alien (wrapping a JS object), ',
+		'a Newspeak closure (becomes an expat), or one of the bilingual ',
+		'primitive types (SmallInteger, MediumInteger, Float, String, ',
+		'nil, true, false). Any other Newspeak object must first be ',
+		'converted to one of those forms.'
 )
 private rawPushAlien: alienIndex = (
 	(* :literalmessage: primitive: 155 *)
