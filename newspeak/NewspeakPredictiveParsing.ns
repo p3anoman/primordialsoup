@@ -1100,27 +1100,38 @@ public parseLazyModifier = (
     expected: 'lazy'.
 )
 peekHasLazyModifier = (
-	(* LL(1) *)
-	tokenKind = #identifier ifFalse: [^false].
-	tokenValue = #lazy ifTrue: [^true].
-	^false
+	(* LL(3). Accepts either '[accessModifier] lazy identifier' or
+	   'accessModifier lazy identifier'. Returns false for things
+	   like 'lazy = body' or 'public lazy = body' (a method named
+	   'lazy'), so those fall through to parseMethodDeclaration. *)
+	| context = saveContext. result modifierConsumed |
+	result:: false.
+	modifierConsumed:: false.
+	peekHasAccessModifier ifTrue: [advanceToken. modifierConsumed:: true].
+	(tokenKind = #identifier and: [tokenValue = #lazy]) ifTrue:
+		[advanceToken.
+		 (modifierConsumed not and: [peekHasAccessModifier])
+			ifTrue: [advanceToken].
+		 tokenKind = #identifier ifTrue: [result:: true]].
+	restoreContext: context.
+	^result
 )
 public parseInstanceSide = (
-	(* sideDecl = lparen, classDecl star, lazySlotDecl star, methodDecl star, rparen. *)
+	(* sideDecl = lparen, (classDecl | lazySlotDecl | methodDecl) star, rparen.
+	   Members may appear in any order; the AST still bins them
+	   into separate lists by category. *)
 
-	| nestedClasses = List new. lazySlots = List new. methods = List new. member |
+	| nestedClasses = List new. lazySlots = List new. methods = List new. |
 
 	(tokenKind = #'(') ifFalse: [expected: '('].
 	advanceToken.
 
-	[peekHasClassDeclaration] whileTrue:
-		[nestedClasses add: parseClassDeclaration].
-
-	[peekHasLazyModifier] whileTrue:
-		[lazySlots add: parseLazySlotDeclaration].
-        
 	[tokenKind = #')'] whileFalse:
-		[methods add: parseMethodDeclaration].
+		[peekHasClassDeclaration
+			ifTrue: [nestedClasses add: parseClassDeclaration]
+			ifFalse: [peekHasLazyModifier
+				ifTrue: [lazySlots add: parseLazySlotDeclaration]
+				ifFalse: [methods add: parseMethodDeclaration]]].
 
 	advanceToken. (* Consume ) *)
 
@@ -1130,14 +1141,23 @@ public parseInstanceSide = (
 		methods: methods
 )
 public parseLazySlotDeclaration = (
-	(* lazySlotDecl = lazyModifier, accessModifier opt, slotDecl,
+	(* lazySlotDecl = (lazyModifier, accessModifier opt | accessModifier, lazyModifier),
+	          slotDecl,
 	          ((tokenFromSymbol: #=) |
 	            (tokenFromSymbol: #'::=')
 	           ), expression, dot.. *)
 	| declStart am varStart varEnd varName type var init |
 	declStart:: tokenStart.
-    parseLazyModifier.
-	am:: parseAccessModifierOpt.
+	(* Either '[am] lazy [am]' ordering — am consumed at most once.
+	   parseAccessModifierOpt always returns a non-nil symbol
+	   (defaulting to #protected), so peek-first to decide whether
+	   the modifier is actually present. *)
+	am:: nil.
+	peekHasAccessModifier ifTrue: [am:: parseAccessModifierOpt].
+	parseLazyModifier.
+	(am isNil and: [peekHasAccessModifier])
+		ifTrue: [am:: parseAccessModifierOpt].
+	am isNil ifTrue: [am:: #protected].
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	varStart:: tokenStart.
 	varEnd:: tokenEnd.
@@ -1195,7 +1215,9 @@ public parseParameterDeclaration = (
 )
 public parseSlotDeclaration = (
 	(* slotDef = accessModifier opt, slotDecl,
-		(((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) opt. *)
+		((((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) | dot) opt.
+	   The trailing '.' is mandatory after an initializer and optional
+	   after an uninitialized slot. *)
 	| declStart am varStart varEnd varName type var init |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
@@ -1226,6 +1248,8 @@ public parseSlotDeclaration = (
 			slotDecl: var;
 			initializer: init;
 			start: declStart; end: init end].
+
+	tokenKind = #'.' ifTrue: [advanceToken].
 
 	^MutableSlotDefAST new
 		accessModifier: am;
