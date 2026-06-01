@@ -123,7 +123,13 @@ public class Parser for: string = Scanner for: string (
 	protected implicitReceiver = VariableAST new name: #'@here'.
 |) (
 defaultClassSide = (
+	(* Build a fully-populated empty SideAST when source omits the
+	   ': (...)' clause. lazySlots must be initialized — otherwise it
+	   stays nil and the AST round-trip comparator (which sees the
+	   re-parsed side, where parseClassSide gives an empty List) flags
+	   a nil-vs-list mismatch. *)
 	^SideAST new
+		lazySlots: {};
 		nestedClasses: {};
 		methods: {}
 )
@@ -526,11 +532,13 @@ public parseLiteral = (
 
 	tokenKind = #binary ifTrue:
 		[tokenValue = '-' ifTrue: [
+			| minusStart |
+			minusStart:: tokenStart.
 			advanceToken.
-			tokenKind = 'number' ifFalse: [expected: 'number'].
+			tokenKind = #number ifFalse: [expected: 'number'].
 			n:: NumberAST new
 				value: tokenValue * -1;
-				start: tokenStart; end: tokenEnd.
+				start: minusStart; end: tokenEnd.
 		 	advanceToken.
 		 	^n]].
 
