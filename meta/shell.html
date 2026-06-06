@@ -61,9 +61,13 @@
          Expose window.git, window.LightningFS, window.GitHttp for the
          Newspeak side to reach via platform js global at: 'git' /
          'LightningFS' / 'GitHttp'. The http/web bundle is needed only
-         for remote operations (clone/fetch/push). -->
-    <script src="https://unpkg.com/isomorphic-git@1.27.0/index.umd.min.js"></script>
-    <script src="https://unpkg.com/@isomorphic-git/lightning-fs@4.6.0/dist/lightning-fs.min.js"></script>
-    <script src="https://unpkg.com/isomorphic-git@1.27.0/http/web/index.umd.js"></script>
+         for remote operations (clone/fetch/push).
+         Self-hosted (not loaded from a CDN) -- vendored bytes live in
+         newspeak/out/vendor/ and are mirrored alongside the HTML by
+         the deploy scripts. Pinning the major versions in the script
+         filenames keeps the runtime upgrade explicit. -->
+    <script src="vendor/isomorphic-git-1.38.4.umd.min.js"></script>
+    <script src="vendor/lightning-fs-4.6.2.min.js"></script>
+    <script src="vendor/isomorphic-git-1.38.4-http-web.umd.js"></script>
   </body>
 </html>
