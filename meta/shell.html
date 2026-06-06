@@ -57,6 +57,15 @@
     <!-- JSZip is used by the Documents module (Ampleforth) to load and
          save .zip-bundled documents. -->
     <script src="jszip.min.js"></script>
+    <!-- feross/buffer 6.0.3 — Node Buffer API polyfill for the browser.
+         MIT, bundles base64-js (MIT) + ieee754 (BSD-3-Clause) into a
+         single self-contained UMD file via browserify. Required by
+         isomorphic-git which has hard `Buffer` references at runtime;
+         self-hosting from npm to avoid CDN trust. The bundle exposes
+         window.buffer.Buffer (the module object), so the bridge line
+         after it pins window.Buffer for isomorphic-git to find. -->
+    <script src="vendor/buffer-6.0.3.bundle.min.js"></script>
+    <script>window.Buffer = window.buffer.Buffer;</script>
     <!-- isomorphic-git + lightning-fs for the MemoryHole web git backend.
          Expose window.git, window.LightningFS, window.GitHttp for the
          Newspeak side to reach via platform js global at: 'git' /
