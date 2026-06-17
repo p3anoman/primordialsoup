@@ -1170,37 +1170,22 @@ public size ^<Integer> = (
 )
 private class MixinBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
-private methodsX
-private nestedClassesX
-private slotsX
-private lazySlotsX
-|) (
+
+
+
+
+  |) (
+lazy public methods = MutableMethodGroup fromIntermediate: intermediate.
+lazy public nestedClasses = MutableNestedClassGroup fromIntermediate: intermediate.
+lazy public slots = MutableSlotGroup fromIntermediate: intermediate.
+lazy public lazySlots = LazyMutableSlotGroup fromIntermediate: intermediate.
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate declaration builder
 )
 public isKindOfMixinMirror ^<Boolean> = (
 	^true
 )
-public methods = (
-	nil = methodsX ifTrue:
-		[methodsX:: MutableMethodGroup fromIntermediate: intermediate].
-	^methodsX
-)
-public nestedClasses = (
-	nil = nestedClassesX ifTrue:
-		[nestedClassesX:: MutableNestedClassGroup fromIntermediate: intermediate].
-	^nestedClassesX
-)
-public slots = (
-	nil = slotsX ifTrue:
-		[slotsX:: MutableSlotGroup fromIntermediate: intermediate].
-	^slotsX
-)
-public lazySlots = (
-	nil = lazySlotsX ifTrue:
-		[lazySlotsX:: LazyMutableSlotGroup fromIntermediate: intermediate].
-	^lazySlotsX
-)
+
 ) : (
 )
 private class MixinMirror reflecting: mxn = (
