@@ -1340,7 +1340,7 @@ private class MutableNestedClassGroup fromIntermediate: ir = Collection (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
-	| idecl <IntermediateClassDeclaration> builder |
+	| idecl <IntermediateClassDeclaration> builder priorExistingMixin <InstanceMixin> |
 
 	idecl:: compiler
 		compileClassSource: source
@@ -1348,15 +1348,44 @@ public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
 
 	intermediate checkNameConflictsForNestedClass: idecl simpleName.
 
+	(* If a nested class of this name already exists, its IR (built by
+	   buildIntermediateFor:within:) carries the link to the existing
+	   mixin. Removing and replacing it with the freshly compiled IR
+	   would drop that link, so atomic install would treat the rebuilt
+	   class as brand-new and leave the existing class's applications and
+	   their instances stale (the existing mixin's #_applications would
+	   never be gathered for update). Carry the link onto the new IR
+	   instead, recursively, so the install updates the class in place. *)
+	intermediate nestedClasses do:
+		[:nestedIR <IntermediateClassDeclaration> |
+		nestedIR simpleName = idecl simpleName ifTrue:
+			[priorExistingMixin:: nestedIR existingMixin]].
 	intermediate nestedClasses removeAllSuchThat:
 		[:nestedIR | nestedIR simpleName = idecl simpleName].
+	nil = priorExistingMixin ifFalse:
+		[setExistingMixinOf: idecl from: priorExistingMixin].
 	intermediate nestedClasses add: idecl.
 
 	builder:: ClassDeclarationBuilder fromIntermediate: idecl.
 	idecl builder: builder.
 	^builder
 )
+private setExistingMixinOf: ir <IntermediateClassDeclaration> from: mxn <InstanceMixin> = (
+	(* Link a rebuilt nested class IR (and, recursively, its own nested
+	   classes) to the corresponding existing mixin of the same name, so
+	   atomic install treats it as an update of the existing class —
+	   migrating that class and its instances — rather than a brand-new
+	   class. Mirrors AtomicInstallWrapper>>setMixinsOf:from:. *)
+	| mixinMap = Map new. |
+	ir existingMixin: mxn.
+	mxn _nestedMixins do: [:nm <InstanceMixin> | mixinMap at: nm _name put: nm].
+	ir instanceSide nestedClasses do:
+		[:ncir <IntermediateClassDeclaration> |
+		| entry = mixinMap at: ncir simpleName ifAbsent: []. |
+		nil = entry ifFalse: [setExistingMixinOf: ncir from: entry]].
+)
 public do: action = (
+	| enclosingExistingMixin <InstanceMixin> = intermediate declaration existingMixin. |
 	intermediate nestedClasses do:
 		[:intermediateClassDeclaration |
 		| builder |
@@ -1365,8 +1394,18 @@ public do: action = (
 			[builder:: ClassDeclarationBuilder fromIntermediate: intermediateClassDeclaration.
 			intermediateClassDeclaration builder: builder.
 
-			(* :bogus: also find existingMixin *)
-			].
+			(* Safety net: every nested IR reaching here should already carry
+			   its existingMixin (set by buildIntermediateFor:within: for
+			   pre-existing classes, or by addFromSource: for replacements).
+			   If one somehow lacks it, recover the link from the enclosing
+			   existing mixin's nested mixin of the same name, so atomic
+			   install updates the class in place rather than treating it as
+			   new (which would leave the old class's applications stale). *)
+			nil = intermediateClassDeclaration existingMixin ifTrue:
+				[nil = enclosingExistingMixin ifFalse:
+					[enclosingExistingMixin _nestedMixins do: [:nm <InstanceMixin> |
+						nm _name = intermediateClassDeclaration simpleName ifTrue:
+							[setExistingMixinOf: intermediateClassDeclaration from: nm]]]]].
 		action value: builder].
 )
 protected newForCollectUsingAdd: capacity = (
