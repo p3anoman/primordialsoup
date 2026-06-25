@@ -233,6 +233,33 @@ public mixinApply: superklass = (
 ) : (
 )
 public class Boolean = () (
+public & alternative <Boolean> ^<Boolean> = (
+	^self subclassResponsibility
+)
+public and: alternative <[Boolean]> ^<Boolean> = (
+	^self subclassResponsibility
+)
+public ifFalse: else <[Y def]> ^<nil | Y> = (
+	^self subclassResponsibility
+)
+public ifFalse: else <[Y def]> ifTrue: then <[X def]> ^<X | Y> = (
+	^self subclassResponsibility
+)
+public ifTrue: then <[X def]> ^<X | nil> = (
+	^self subclassResponsibility
+)
+public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
+	^self subclassResponsibility
+)
+public not ^<Boolean> = (
+	^self subclassResponsibility
+)
+public or: alternative <[Boolean]> ^<Boolean> = (
+	^self subclassResponsibility
+)
+public | alternative <Boolean> ^<Boolean> = (
+	^self subclassResponsibility
+)
 ) : (
 )
 public class ByteArray _cannotInstantiate = Collection () (
@@ -728,6 +755,25 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 public class Float _cannotInstantiate = Number () (
+(* See Integer for the double-dispatch result-typing scheme; on Float every result is Float. *)
+public + x <def X> ^<Y> where {Y :: returnType of (addFromFloat: message of (arg 1))} = (
+	(* :literalmessage: primitive: 1 *)
+	^x addFromFloat: self
+)
+public - x <def X> ^<Y> where {Y :: returnType of (subtractFromFloat: message of (arg 1))} = (
+	(* :literalmessage: primitive: 2 *)
+	^x subtractFromFloat: self
+)
+public * x <def X> ^<Y> where {Y :: returnType of (multiplyFromFloat: message of (arg 1))} = (
+	(* :literalmessage: primitive: 3 *)
+	^x multiplyFromFloat: self
+)
+public addFromInteger: x <Integer> ^<Float> = (^x asFloat + self)
+public addFromFloat: x <Float> ^<Float> = (^x + self)
+public subtractFromInteger: x <Integer> ^<Float> = (^x asFloat - self)
+public subtractFromFloat: x <Float> ^<Float> = (^x - self)
+public multiplyFromInteger: x <Integer> ^<Float> = (^x asFloat * self)
+public multiplyFromFloat: x <Float> ^<Float> = (^x * self)
 public addFromFraction: left = (
 	^left asFloat + self
 )
@@ -827,6 +873,14 @@ public class Fraction reducedNumerator: num denominator: denom = Number (|
 public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
+(* Coercion-typing helpers: result of Integer/Float <op> aFraction. Integer-from results may
+   reduce to an Integer, so they are typed Number; Float-from results are always Float. *)
+public addFromInteger: x <Integer> ^<Number> = (^(x * denominator + numerator) / denominator)
+public addFromFloat: x <Float> ^<Float> = (^x + self asFloat)
+public subtractFromInteger: x <Integer> ^<Number> = (^(x * denominator - numerator) / denominator)
+public subtractFromFloat: x <Float> ^<Float> = (^x - self asFloat)
+public multiplyFromInteger: x <Integer> ^<Number> = (^(x * numerator) / denominator)
+public multiplyFromFloat: x <Float> ^<Float> = (^x * self asFloat)
 public * other <Number> ^<Number> = (
 	other isKindOfFraction ifFalse: [^other multiplyFromFraction: self].
 	^Fraction
@@ -1211,6 +1265,27 @@ public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
 ) : (
 )
 public class Integer = Number () (
+(* Arithmetic with double-dispatch result typing: the result type is the return type of the
+   `<op>FromInteger:` helper on the argument's type (Integer->Integer, Float->Float, ...). The
+   primitive handles the common same-type/mixed-VM-number cases; the body is the fallback. *)
+public + x <def X> ^<Y> where {Y :: returnType of (addFromInteger: message of (arg 1))} = (
+	(* :literalmessage: primitive: 1 *)
+	^x addFromInteger: self
+)
+public - x <def X> ^<Y> where {Y :: returnType of (subtractFromInteger: message of (arg 1))} = (
+	(* :literalmessage: primitive: 2 *)
+	^x subtractFromInteger: self
+)
+public * x <def X> ^<Y> where {Y :: returnType of (multiplyFromInteger: message of (arg 1))} = (
+	(* :literalmessage: primitive: 3 *)
+	^x multiplyFromInteger: self
+)
+public addFromInteger: x <Integer> ^<Integer> = (^x + self)
+public addFromFloat: x <Float> ^<Float> = (^x + self asFloat)
+public subtractFromInteger: x <Integer> ^<Integer> = (^x - self)
+public subtractFromFloat: x <Float> ^<Float> = (^x - self asFloat)
+public multiplyFromInteger: x <Integer> ^<Integer> = (^x * self)
+public multiplyFromFloat: x <Float> ^<Float> = (^x * self asFloat)
 public & other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
@@ -1544,6 +1619,17 @@ public \\ other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
+(* Coercion-typing helpers for mixed-type arithmetic (Strongtalk style). `<op>From<T>:`
+   answers (originalReceiver-of-type-T) <op> self; its return TYPE encodes the result type of
+   that mixed operation, which the `<op>` operators read via a where-clause. Number's versions
+   are unreachable at runtime (Number is abstract) and exist for the case where an argument is
+   statically typed Number. *)
+public addFromInteger: x <Integer> ^<Number> = (^x + self)
+public addFromFloat: x <Float> ^<Float> = (^x + self asFloat)
+public subtractFromInteger: x <Integer> ^<Number> = (^x - self)
+public subtractFromFloat: x <Float> ^<Float> = (^x - self asFloat)
+public multiplyFromInteger: x <Integer> ^<Number> = (^x * self)
+public multiplyFromFloat: x <Float> ^<Float> = (^x * self asFloat)
 public abs ^<Number> = (
 	self < 0 ifTrue: [^self negated].
 	^self
@@ -2512,6 +2598,8 @@ public yourself = (
 )
 public ~= other <Object> ^<Boolean> = (
 	^(self = other) not.
+)
+subclassResponsibility = (
 )
 ) : (
 )

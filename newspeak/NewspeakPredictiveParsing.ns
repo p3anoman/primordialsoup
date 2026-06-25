@@ -30,6 +30,8 @@ Todo:
 	private CodeBodyAST = asts CodeBodyAST.
 	private ImmutableSlotDefAST = asts ImmutableSlotDefAST.
 	private InitializerAST = asts InitializerAST.
+	private InferenceClauseAST = asts InferenceClauseAST.
+	private InferenceExprAST = asts InferenceExprAST.
 	private MessageAST = asts MessageAST.
 	private MessagePatternAST = asts MessagePatternAST.
 	private MethodAST = asts MethodAST.
@@ -263,7 +265,7 @@ public parseClassHeader = (
 		superclassClause opt, lparen, classComment opt,
 		slotDecls opt,  initExprs, rparen). *)
 
-	| declStart am name typeParams constructor superclassCall comment tempsBody inits declEnd x y |
+	| declStart am name typeParams typeParamBounds tpsPair constructor superclassCall comment tempsBody inits declEnd x y |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
 
@@ -274,7 +276,9 @@ public parseClassHeader = (
 	name:: tokenValue.
 	advanceToken.
 
-	typeParams:: parseTypeParametersOpt.
+	tpsPair:: parseTypeParametersOpt.
+	typeParams:: tpsPair first.
+	typeParamBounds:: tpsPair last.
 
 	(* Cheat: skipping binary message pattern. *)
 	(tokenKind = #identifier or: [tokenKind = #keyword])
@@ -303,6 +307,7 @@ public parseClassHeader = (
 	^ClassHeaderAST new
 		name: name asSymbol;
 		typeParameters: typeParams;
+		typeParameterBounds: typeParamBounds;
 		constructor: constructor;
 		superclassName: superclassCall receiver message selector;
 		superclassCall: superclassCall receiver;
@@ -475,16 +480,26 @@ public parseKeywordHereSend = (
 		start: message start; end: message end
 )
 public parseKeywordMessage = (
-	(* keywordMsg = eventualSendOperator opt, (keyword, binaryExpression) plus. *)
-	| messageStart isEventual selector arguments = List new. |
+	(* keywordMsg = eventualSendOperator opt, (keyword, binaryExpression) plus.
+	   The first keyword part may carry value-site type arguments: identifier, [T…], ':',
+	   e.g. make[Integer]: 3. *)
+	| messageStart isEventual selector arguments = List new. typeArgs idTok |
 
 	messageStart:: tokenStart.
 	isEventual:: tokenKind = #'<-:'.
 	isEventual ifTrue: [advanceToken].
 
-	tokenKind = #keyword ifFalse: [expected: 'keyword'].
-	selector:: tokenValue.
-	advanceToken.
+	typeArgs:: nil.
+	tokenKind = #keyword
+		ifTrue: [selector:: tokenValue. advanceToken]
+		ifFalse: [
+			tokenKind = #identifier ifFalse: [expected: 'keyword'].
+			idTok:: tokenValue.
+			advanceToken.
+			tokenKind = #'[' ifTrue: [typeArgs:: parseValueTypeArgumentsOpt].
+			tokenKind = #':' ifFalse: [expected: ':'].
+			advanceToken.
+			selector:: idTok, ':'].
 	arguments add: parseBinaryExpression.
 
 	[tokenKind = #keyword] whileTrue:
@@ -495,6 +510,7 @@ public parseKeywordMessage = (
 	^MessageAST new
 		send: selector asSymbol with: arguments asArray;
 		isEventual: isEventual;
+		typeArguments: typeArgs;
 		start: messageStart; end: arguments last end
 )
 public parseKeywordMessagePattern = (
@@ -518,6 +534,155 @@ public parseKeywordMessagePattern = (
 		selector: selector asSymbol parameters: parameters asArray;
 		returnType: returnType;
 		start: patternStart; end: parameters last end
+)
+public parseUnaryOrKeywordMessagePattern = (
+	(* identifier, [selectorTypeParams] opt, then ':'⇒keyword pattern else unary pattern.
+	   Supports generic-method selector type params, e.g. `pick[T]: x or: y` and `echo[R]`. *)
+	| patternStart selTok selEnd typeParams pattern |
+	tokenKind = #identifier ifFalse: [expected: 'selector'].
+	patternStart:: tokenStart.
+	selTok:: tokenValue.
+	selEnd:: tokenEnd.
+	advanceToken.
+	typeParams:: nil.
+	tokenKind = #'[' ifTrue: [typeParams:: parseSelectorTypeParameters].
+	tokenKind = #':' ifTrue:
+		[^parseKeywordMessagePatternFrom: selTok typeParameters: typeParams start: patternStart].
+	pattern:: MessagePatternAST new
+		selector: selTok asSymbol parameters: {};
+		start: patternStart; end: selEnd.
+	pattern typeParameters: typeParams.
+	tokenKind = #'^' ifTrue: [pattern returnType: parseReturnType].
+	^pattern
+)
+public parseKeywordMessagePatternFrom: firstSel typeParameters: typeParams start: patternStart = (
+	(* Continue a keyword pattern whose first part is `firstSel:` (identifier already consumed,
+	   possibly carrying selector type params); current token is the ':'. *)
+	| selector parameters = List new. pattern |
+	tokenKind = #':' ifFalse: [expected: ':'].
+	advanceToken.
+	selector:: firstSel, ':'.
+	parameters add: parseParameterDeclaration.
+	[tokenKind = #keyword] whileTrue:
+		[selector:: selector, tokenValue.
+		 advanceToken.
+		 parameters add: parseParameterDeclaration].
+	pattern:: MessagePatternAST new
+		selector: selector asSymbol parameters: parameters asArray;
+		start: patternStart; end: parameters last end.
+	pattern typeParameters: typeParams.
+	tokenKind = #'^' ifTrue: [pattern returnType: parseReturnType].
+	^pattern
+)
+public parseSelectorTypeParameters = (
+	(* [T, U, …] selector type parameters (names only). *)
+	| params = List new. |
+	tokenKind = #'[' ifFalse: [expected: '['].
+	advanceToken.
+	tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+	params add: tokenValue asSymbol.
+	advanceToken.
+	[tokenKind = #binary and: [tokenValue = ',']] whileTrue:
+		[advanceToken.
+		 tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+		 params add: tokenValue asSymbol.
+		 advanceToken].
+	tokenKind = #']' ifFalse: [expected: ']'].
+	advanceToken.
+	^params
+)
+public parseWhereClauseOpt = (
+	(* where { clause (, clause)* } opt ; returns List[InferenceClauseAST] or nil. *)
+	| clauses = List new. |
+	(tokenKind = #identifier and: [tokenValue = 'where']) ifFalse: [^nil].
+	advanceToken.
+	tokenKind = #'{' ifFalse: [expected: '{'].
+	advanceToken.
+	clauses add: parseInferenceClause.
+	[tokenKind = #binary and: [tokenValue = ',']] whileTrue:
+		[advanceToken. clauses add: parseInferenceClause].
+	tokenKind = #'}' ifFalse: [expected: '}'].
+	advanceToken.
+	^clauses
+)
+public parseInferenceClause = (
+	(* name (<: bound)? :: inferenceExpr
+	   The separator is `::`. Glued to the name (X::) the scanner yields one #setter token;
+	   spaced (X ::) or after a bound it yields two #':' tokens. Because `::` is not an
+	   identifier, the bound may be a full typeExpr (e.g. X class) without the type parse
+	   swallowing the separator. *)
+	| name bound expr |
+	tokenKind = #setter ifTrue:
+		[(* glued form `name::` -- no bound *)
+		 name:: (tokenValue copyFrom: 1 to: tokenValue size - 1) asSymbol.
+		 advanceToken.
+		 expr:: parseInferenceExpr.
+		 ^InferenceClauseAST new typeParameterName: name; bound: nil; expr: expr; yourself].
+	tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+	name:: tokenValue asSymbol.
+	advanceToken.
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
+		[advanceToken.
+		 tokenKind = #':' ifFalse: [expected: ':'].
+		 advanceToken.
+		 bound:: parseTypeExpr].
+	(* consume the `::` separator (two colon tokens) *)
+	tokenKind = #':' ifFalse: [expected: '::'].
+	advanceToken.
+	tokenKind = #':' ifFalse: [expected: '::'].
+	advanceToken.
+	expr:: parseInferenceExpr.
+	^InferenceClauseAST new typeParameterName: name; bound: bound; expr: expr; yourself
+)
+public parseInferenceExpr = (
+	tokenKind = #identifier ifTrue:
+		[tokenValue = 'arg' ifTrue: [^parseArgInferenceExpr].
+		 tokenValue = 'receiverType' ifTrue: [advanceToken. ^InferenceExprAST new kind: #receiverType; yourself].
+		 tokenValue = 'returnType' ifTrue:
+			[advanceToken.
+			 (tokenKind = #identifier and: [tokenValue = 'of']) ifFalse: [expected: 'of'].
+			 advanceToken.
+			 ^InferenceExprAST new kind: #returnTypeOf; subExpr: parseParenInferenceExpr; yourself].
+		 (* a non-reserved identifier is a unary message selector: <sel> message of (ie) *)
+		 ^parseMessageInferenceExpr].
+	(tokenKind = #binary or: [tokenKind = #keyword]) ifTrue: [^parseMessageInferenceExpr].
+	expected: 'inference expression'.
+)
+public parseArgInferenceExpr = (
+	| n |
+	advanceToken. (* 'arg' *)
+	tokenKind = #number ifFalse: [expected: 'argument number'].
+	n:: tokenValue.
+	advanceToken.
+	(tokenKind = #identifier and: [tokenValue = 'of']) ifTrue:
+		[advanceToken.
+		 ^InferenceExprAST new kind: #argNOf; index: n; subExpr: parseParenInferenceExpr; yourself].
+	^InferenceExprAST new kind: #arg; index: n; yourself
+)
+public parseMessageInferenceExpr = (
+	(* <selector> message of (ie) — selector may be unary, binary, or one-or-more keywords:
+	   e.g. at: message of (arg 1), anElement message of (receiverType), + message of (receiverType) *)
+	| selector |
+	tokenKind = #keyword
+		ifTrue: [selector:: ''. [tokenKind = #keyword] whileTrue: [selector:: selector, tokenValue. advanceToken]]
+		ifFalse: [
+			(tokenKind = #identifier or: [tokenKind = #binary]) ifFalse: [expected: 'message selector'].
+			selector:: tokenValue.
+			advanceToken].
+	(tokenKind = #identifier and: [tokenValue = 'message']) ifFalse: [expected: 'message'].
+	advanceToken.
+	(tokenKind = #identifier and: [tokenValue = 'of']) ifFalse: [expected: 'of'].
+	advanceToken.
+	^InferenceExprAST new kind: #messageOf; selector: selector asSymbol; subExpr: parseParenInferenceExpr; yourself
+)
+public parseParenInferenceExpr = (
+	| e |
+	tokenKind = #'(' ifFalse: [expected: '('].
+	advanceToken.
+	e:: parseInferenceExpr.
+	tokenKind = #')' ifFalse: [expected: ')'].
+	advanceToken.
+	^e
 )
 public parseLiteral = (
 	(* literal = pattern | number | symbolConstant | characterConstant | string | tuple. *)
@@ -605,7 +770,7 @@ public parseMessagePattern = (
 	(* messagePattern = unaryMsgPattern | binaryMsgPattern | keywordMsgPattern. *)
 
 	tokenKind = #identifier ifTrue:
-		[^parseUnaryMessagePattern].
+		[^parseUnaryOrKeywordMessagePattern].
 	tokenKind = #binary ifTrue:
 		[^parseBinaryMessagePattern].
 	tokenKind = #keyword ifTrue:
@@ -620,6 +785,7 @@ public parseMethodDeclaration = (
 	am:: parseAccessModifierOpt.
 
 	pattern:: parseMessagePattern.
+	pattern inferenceClauses: parseWhereClauseOpt.
 
 	(tokenKind = #binary and: [tokenValue = '=']) ifFalse: [expected: '='].
 	advanceToken.
@@ -651,6 +817,7 @@ public parseMethodHeader = (
 	am:: parseAccessModifierOpt.
 	pattern:: parseMessagePattern.
 	pattern accessModifier: am.
+	pattern inferenceClauses: parseWhereClauseOpt.
 	^pattern
 )
 public parseParenthesizedExpression = (
@@ -684,8 +851,11 @@ public parsePrimary = (
 	| send |
 
 	tokenKind = #identifier ifTrue:
-		[send:: unaryImplicitReceiverSend.
+		[| special = {#self. #super. #outer} includes: tokenValue asSymbol. |
+		 send:: unaryImplicitReceiverSend.
 		 advanceToken.
+		 (special not and: [tokenKind = #'[']) ifTrue:
+			[send message typeArguments: parseValueTypeArgumentsOpt].
 		^send].
 
 	tokenKind = #'[' ifTrue:
@@ -758,6 +928,8 @@ public parseSuperclassClause = (
 		start: clauseStart; end: tokenEnd.
 	clauseEnd:: tokenEnd.
 	advanceToken.
+	(* Type arguments on the superclass accessor, e.g. `Cmp[Token]`. *)
+	tokenKind = #'[' ifTrue: [sc message typeArguments: parseValueTypeArgumentsOpt].
 
 	^UnresolvedSendAST new
 		receiver: sc;
@@ -842,6 +1014,7 @@ public parseUnaryMessage = (
 		isEventual: isEventual;
 		start: messageStart; end: tokenEnd.
 	advanceToken.
+	tokenKind = #'[' ifTrue: [message typeArguments: parseValueTypeArgumentsOpt].
 	^message
 )
 public parseUnaryMessagePattern = (
@@ -899,10 +1072,29 @@ peekHasClassDeclaration = (
 	restoreContext: context.
 	^true
 )
+peekIsKeywordSelectorWithTypeArgs = (
+	(* LL(k): identifier, '[', …balanced…, ']', ':' ⇒ a keyword selector carrying value-site
+	   type arguments, e.g. make[Integer]: . *)
+	| context depth result |
+	tokenKind = #identifier ifFalse: [^false].
+	context:: saveContext.
+	advanceToken.
+	tokenKind = #'[' ifFalse: [restoreContext: context. ^false].
+	advanceToken.
+	depth:: 1.
+	[depth > 0 and: [tokenKind ~= #end]] whileTrue:
+		[tokenKind = #'[' ifTrue: [depth:: depth + 1].
+		 tokenKind = #']' ifTrue: [depth:: depth - 1].
+		 advanceToken].
+	result:: tokenKind = #':'.
+	restoreContext: context.
+	^result
+)
 peekHasKeywordMessage = (
 	(* LL(2) *)
 	| context result |
 	tokenKind = #keyword ifTrue: [^true].
+	tokenKind = #identifier ifTrue: [^peekIsKeywordSelectorWithTypeArgs].
 	tokenKind = #'<-:' ifFalse: [^false].
 
 	(* Unlikely *)
@@ -915,7 +1107,7 @@ peekHasKeywordMessage = (
 peekHasUnaryMessage = (
 	(* LL(2) *)
 	| context result |
-	tokenKind = #identifier ifTrue: [^true].
+	tokenKind = #identifier ifTrue: [^peekIsKeywordSelectorWithTypeArgs not].
 	tokenKind = #'<-:' ifFalse: [^false].
 
 	(* Unlikely *)
@@ -1011,31 +1203,44 @@ public parseBlockArgType = (
        ].
        expected: ':'
 )
-public parseTypeParametersOpt ^ <List[Symbol]> = (
-	(* typeParameterDecl opt = ('<', '[', identifier, (',', identifier)*, ']', '>') | empty.
-	   Parses optional type parameter declarations on a class, e.g., <[K, V]>. *)
-	| params = List new. |
-	(tokenKind = #binary and: [tokenValue = '<']) ifFalse: [^params].
+public parseTypeParametersOpt = (
+	(* Returns {names <List[Symbol]>. bounds <List[TypeAST | Nil]>} with bounds parallel to
+	   names (nil where no `<: Bound` was given). Accepts both the new bracket form [E <: B]
+	   and the legacy <[E …]> form. *)
+	| params = List new. bounds = List new. angleForm |
+	angleForm:: (tokenKind = #binary and: [tokenValue = '<']).
+	angleForm
+		ifTrue: [advanceToken. tokenKind = #'[' ifFalse: [expected: '[']]
+		ifFalse: [tokenKind = #'[' ifFalse: [^{params. bounds}]].
 	advanceToken.
-	tokenKind = #'[' ifFalse: [expected: '['].
-	advanceToken.
-	tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
-	params add: tokenValue asSymbol.
-	advanceToken.
+	parseOneTypeParameterInto: params bounds: bounds.
 	[tokenKind = #binary and: [tokenValue = ',']] whileTrue: [
 		advanceToken.
-		tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
-		params add: tokenValue asSymbol.
-		advanceToken.
+		parseOneTypeParameterInto: params bounds: bounds.
 	].
 	tokenKind = #']' ifFalse: [expected: ']'].
 	advanceToken.
-	(* Handle '>' vs '>=' the same way parseType does *)
+	angleForm ifFalse: [^{params. bounds}].
+	(* Legacy form closes with '>' (handle '>=' as parseType does). *)
 	tokenKind = #binary ifTrue: [
-		tokenValue = '>' ifTrue: [advanceToken. ^params].
-		tokenValue = '>=' ifTrue: [tokenValue:: '='. ^params].
+		tokenValue = '>' ifTrue: [advanceToken. ^{params. bounds}].
+		tokenValue = '>=' ifTrue: [tokenValue:: '='. ^{params. bounds}].
 	].
 	expected: '>'.
+)
+parseOneTypeParameterInto: params <List[Symbol]> bounds: bounds <List> = (
+	(* One type parameter: identifier, optional `<: TypeExpr` upper bound. *)
+	tokenKind = #identifier ifFalse: [expected: 'type parameter name'].
+	params add: tokenValue asSymbol.
+	advanceToken.
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue: [
+		advanceToken.
+		tokenKind = #':' ifFalse: [expected: ':'].
+		advanceToken.
+		bounds add: parseTypeExpr.
+	] ifFalse: [
+		bounds add: nil.
+	].
 )
 public parseTypeArguments = (
        (* typeArguments = lbracket, (typeExpr plusSeparatedBy: comma), rbracket *)
@@ -1048,6 +1253,18 @@ public parseTypeArguments = (
          tas add: parseTypeExpr.
        ].
        ^tas
+)
+parseValueTypeArgumentsOpt = (
+	(* Value-site explicit type arguments [T, …] following a just-consumed unary selector,
+	   e.g. the [Integer] in `Box[Integer] new`. Returns nil when no '[' follows.
+	   (Adjacency-based disambiguation from blocks is unnecessary here: a primary
+	   identifier-send can never be legally juxtaposed with a block.) *)
+	| tas |
+	tokenKind = #'[' ifFalse: [^nil].
+	tas:: parseTypeArguments.
+	tokenKind = #']' ifFalse: [expected: ']'].
+	advanceToken.
+	^tas
 )
 public parseNonEmptyBlockArgList = (
        (* nonEmptyBlockArgList = blockArgType plus, (vbar, blockReturnType) opt *)
