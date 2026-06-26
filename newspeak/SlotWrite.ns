@@ -1,11 +1,24 @@
 Newspeak3
 'Benchmarks'
-class SlotWrite usingPlatform: p = (| slot |) (
-public bench = (
-	| something = 'something'. |
-	1 to: 100000 do: [:i |
-		slot: something. slot: something. slot: something. slot: something. slot: something.
-		slot: something. slot: something. slot: something. slot: something. slot: something.].
-)
-) : (
-)
+class SlotWrite usingPlatform: p = Object new (
+	|
+		slot
+	|
+) (
+	public bench = (
+		| something = 'something'. |
+		1 to: 100000
+			do: [:i |
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something.
+				slot: something
+			]
+	)
+) : ()

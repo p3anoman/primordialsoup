@@ -1,602 +1,625 @@
 Newspeak3
 'Root'
-class CollectionsForPrimordialSoup usingInternalKernel: ik (* :exemplar:  platform collections *) = (
+class CollectionsForPrimordialSoup usingInternalKernel: ik
+(* :exemplar:  platform collections *)
+ = Object new (
 	|
-	public Collection = ik Collection.
-	private ArgumentError = ik ArgumentError.
+		public Collection = ik Collection.
+		private ArgumentError = ik ArgumentError.
 	|
 ) (
-public class List[E] new: capacity <Integer> (* :exemplar: List new *) = Collection (
-  (* An ordered collection of elements.
+	public class List[E] new: capacity <Integer>
+	(* :exemplar: List new *)
+	 = Collection new (
+		(* An ordered collection of elements.
 
 Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be used as an efficient stack, but an inefficient queue.
 
 nil is a valid element. *)
-	|
-	protected size_ ::= 0.
-	protected data ::= Array new: capacity.
-	|
-) (
-public , other = (
-	| result = List new: (self size + other size | 3). |
-	self do: [:element | result add: element].
-	other do: [:element | result add: element].
-	^result
-)
-public add: element <E> ^ <E> (* :exemplar: add: 3 *) = (
-	|
-	capacity = data size.
-	newSize = size_ + 1.
-	|
-	newSize > capacity ifTrue:
-		[data:: data copyWithSize: (capacity >> 1 + capacity | 7)].
-	size_:: newSize.
-	^data at: size_ put: element.
-)
-public addAll: collection <Collection[E]> = (
-	collection do: [:element | self add: element].
-)
-public addFirst: element <E> ^ <E> = (
-	| oldData capacity newData |
-	oldData:: data.
-	capacity:: oldData size.
-	size_ >= oldData size
-		ifTrue: [data:: newData:: Array new: (capacity >> 1 + capacity | 7)]
-		ifFalse: [newData:: oldData].
-	newData replaceFrom: 2 to: 1 + size_ with: oldData startingAt: 1.
-	newData at: 1 put: element.
-	size_:: size_ + 1.
-	^element
-)
-public addLast: element <E> ^ <E> = (
-	^self add: element
-)
-public asArray ^ <Array[E]> = (
-	^data copyFrom: 1 to: size_
-)
-public at: index <Integer> ^ <E> = (
-	index > size_ ifTrue: [^(ArgumentError value: index) signal].
-	^data at: index
-)
-public at: index <Integer> put: value <E> ^ <E> = (
-	index > size_ ifTrue: [^(ArgumentError value: index) signal].
-	^data at: index put: value
-)
-public copyFrom: start <Integer> to: stop <Integer> ^ <List[E]> = (
-	| localData result |
-	start <= 0 ifTrue: [^(ArgumentError value: start) signal].
-	stop > size_ ifTrue: [^(ArgumentError value: stop) signal].
-	result:: List new: stop - start + 1.
-	localData:: data.
-	start to: stop do: [:index | result add: (localData at: index)].
-	^result
-)
-public do: action <[:E]> = (
-	1 to: size_ do: [:index | action value: (data at: index)].
-)
-public first ^ <E> = (
-	^self at: 1
-)
-public include: element <E> ^<E> = (
-	1 to: size_ do:
-		[:index | (data at: index) = element ifTrue: [^element]].
-	^self addLast: element
-)
-public indexOf: element <E> ^ <Integer> = (
-	1 to: size_ do: [:index | (data at: index) = element ifTrue: [^index]].
-	^0
-)
-public isEmpty ^ <Boolean> = (
-	^0 = size_
-)
-public isKindOfList ^ <Boolean> = (
-	^true
-)
-public keysAndValuesDo: action <[:Integer :E]> = (
-	1 to: size_ do: [:index | action value: index value: (data at: index)].
-)
-public last ^ <E> = (
-	^self at: size
-)
-protected newForCollectUsingAdd: capacity = (
-	^List new: capacity
-)
-public remove: element <E> ^ <E> = (
-	^self remove: element ifAbsent: [(NotFound element: element) signal]
-)
-public remove: element <E> ifAbsent: onAbsent <[X def]> ^ <E | X> = (
-	1 to: size_ do:
-		[:index |
-		(data at: index) = element ifTrue:
-			[index to: size_ - 1 do:
-				[:j |
-				data at: j put: (data at: j + 1)].
+		
+		|
+			size_ ::= 0.
+			data ::= Array new: capacity.
+		|
+	) (
+		public , other = (
+			| result = List new: self size + other size | 3. |
+			self do: [:element | result add: element ].
+			other do: [:element | result add: element ].
+			^result
+		)
+		public add: element <E> ^<E>
+		(* :exemplar: add: 3 *)
+		 = (
+			| capacity = data size. newSize = size_ + 1. |
+			newSize > capacity ifTrue: [
+					data:: data copyWithSize: capacity >> 1 + capacity | 7
+				].
+			size_:: newSize.
+			^data at: size_ put: element
+		)
+		public addAll: collection <Collection[E]> = (
+			collection do: [:element | self add: element ]
+		)
+		public addFirst: element <E> ^<E> = (
+			| oldData capacity newData |
+			oldData:: data.
+			capacity:: oldData size.
+			size_ >= oldData size ifTrue: [
+					data:: newData:: Array new: capacity >> 1 + capacity | 7
+				]
+				ifFalse: [ newData:: oldData ].
+			newData replaceFrom: 2 to: 1 + size_ with: oldData startingAt: 1.
+			newData at: 1 put: element.
+			size_:: size_ + 1.
+			^element
+		)
+		public addLast: element <E> ^<E> = (
+			^self add: element
+		)
+		public asArray ^<Array[E]> = (
+			^data copyFrom: 1 to: size_
+		)
+		public at: index <Integer> ^<E> = (
+			index > size_ ifTrue: [ ^(ArgumentError value: index) signal ].
+			^data at: index
+		)
+		public at: index <Integer> put: value <E> ^<E> = (
+			index > size_ ifTrue: [ ^(ArgumentError value: index) signal ].
+			^data at: index put: value
+		)
+		public copyFrom: start <Integer> to: stop <Integer> ^<List[E]> = (
+			| localData result |
+			start <= 0 ifTrue: [ ^(ArgumentError value: start) signal ].
+			stop > size_ ifTrue: [ ^(ArgumentError value: stop) signal ].
+			result:: List new: stop - start + 1.
+			localData:: data.
+			start to: stop do: [:index | result add: (localData at: index) ].
+			^result
+		)
+		public do: action <[:E | Object]> = (
+			1 to: size_ do: [:index | action value: (data at: index) ]
+		)
+		public first ^<E> = (
+			^self at: 1
+		)
+		public include: element <E> ^<E> = (
+			1 to: size_ do: [:index | (data at: index) = element ifTrue: [ ^element ] ].
+			^self addLast: element
+		)
+		public indexOf: element <E> ^<Integer> = (
+			1 to: size_ do: [:index | (data at: index) = element ifTrue: [ ^index ] ].
+			^0
+		)
+		public isEmpty ^<Boolean> = (
+			^0 = size_
+		)
+		public isKindOfList ^<Boolean> = (
+			^true
+		)
+		public keysAndValuesDo: action <[:Integer :E | Object]> = (
+			1 to: size_ do: [:index | action value: index value: (data at: index) ]
+		)
+		public last ^<E> = (
+			^self at: size
+		)
+		newForCollectUsingAdd: capacity = (
+			^List new: capacity
+		)
+		public remove: element <E> ^<E> = (
+			^self remove: element ifAbsent: [ (NotFound element: element) signal ]
+		)
+		public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
+			1 to: size_
+				do: [:index |
+					(data at: index) = element ifTrue: [
+							index to: size_ - 1 do: [:j | data at: j put: (data at: j + 1) ].
+							data at: size_ put: nil.
+							size_:: size_ - 1.
+							^element
+						]
+				].
+			^onAbsent value
+		)
+		public removeAll = (
+			data:: Array new: 3.
+			size_:: 0
+		)
+		public removeAllSuchThat: predicate <[:E | Boolean]> = (
+			| writeBackIndex ::= 1. |
+			1 to: size_
+				do: [:index |
+					| element = data at: index. |
+					(predicate value: element) ifFalse: [
+							data at: writeBackIndex put: element.
+							writeBackIndex:: 1 + writeBackIndex
+						]
+				].
+			writeBackIndex to: size_ do: [:index | data at: index put: nil ].
+			size_:: writeBackIndex - 1
+		)
+		public removeFirst ^<E> = (
+			| oldFirst |
+			0 = size_ ifTrue: [ ^errorEmpty ].
+			oldFirst:: data at: 1.
+			1 to: size_ - 1 do: [:index | data at: index put: (data at: 1 + index) ].
 			data at: size_ put: nil.
 			size_:: size_ - 1.
-			^element]].
-	^onAbsent value.
-)
-public removeAll = (
-	data:: Array new: 3.
-	size_:: 0.
-)
-public removeAllSuchThat: predicate <[:E | Boolean]> = (
-	| writeBackIndex ::= 1. |
-	1 to: size_ do:
-		[:index |
-		| element = data at: index. |
-		(predicate value: element) ifFalse:
-			[data at: writeBackIndex put: element.
-			 writeBackIndex:: 1 + writeBackIndex]].
-	writeBackIndex to: size_ do:
-		[:index | data at: index put: nil].
-	size_:: writeBackIndex - 1.
-)
-public removeFirst ^ <E> = (
-	| oldFirst |
-	0 = size_ ifTrue: [^errorEmpty].
-	oldFirst:: data at: 1.
-	1 to: size_ - 1 do: [:index | data at: index put: (data at: 1 + index)].
-	data at: size_ put: nil.
-	size_:: size_ - 1.
-	^oldFirst
-)
-public removeLast ^ <E> = (
-	| element = self at: size_. |
-	data at: size_ put: nil.
-	size_:: size_ - 1.
-	^element
-)
-public reverse ^ <List[T]> = (
-  | reversed <List[t]> = List new: size. |
-  size to: 1 by: -1 do: [:i | reversed add: (at: i)].
-  ^reversed
-)
-public size ^ <Integer> = (
-	^size_
-)
-public sort: lessOrEqual <[:E :E | Boolean]> = (
-	data sortFrom: 1 to: size_ by: lessOrEqual.
-)
-public with: other <List[X def]> do: action <[:E :X]> = (
-	assert: [ self size = other size ] message: 'Cannot jointly interate collections of different size'.
-	1 to: size do:
-		[:index <Integer> |
- action value: (at: index) value: (other at: index)].
- )
-public tail ^ <List[E]> = (
-  size < 2 ifTrue: [^List new].
-  ^self copyFrom: 2 to: size.
-)
-) : (
-public new ^ <List[E]> = (
-	^self new: 3
-)
-public withAll: collection <Collection[E]> ^ <List[E]> = (
-	^(self new: collection size) addAll: collection; yourself
-)
-)
-public class Map[K, V] new: capacity <Integer> = Collection (
-  (* A collection associating keys to values.
+			^oldFirst
+		)
+		public removeLast ^<E> = (
+			| element = self at: size_. |
+			data at: size_ put: nil.
+			size_:: size_ - 1.
+			^element
+		)
+		public reverse ^<List[T]> = (
+			| reversed <List[t]> = List new: size. |
+			size to: 1 by: -1 do: [:i | reversed add: (at: i) ].
+			^reversed
+		)
+		public size ^<Integer> = (
+			^size_
+		)
+		public sort: lessOrEqual <[:E :E | Boolean]> = (
+			data sortFrom: 1 to: size_ by: lessOrEqual
+		)
+		public with: other <List[X def]> do: action <[:E :X | Object]> = (
+			assert: [ self size = other size ]
+				message: 'Cannot jointly interate collections of different size'.
+			1 to: size
+				do: [:index <Integer> | action value: (at: index) value: (other at: index) ]
+		)
+		public tail ^<List[E]> = (
+			size < 2 ifTrue: [ ^List new ].
+			^self copyFrom: 2 to: size
+		)
+	) : (
+		public new ^<List[E]> = (
+			^self new: 3
+		)
+		public withAll: collection <Collection[E]> ^<List[E]> = (
+			^(self new: collection size) addAll: collection;
+				yourself
+		)
+	)
+	public class Map[K, V] new: capacity <Integer> = Collection new (
+		(* A collection associating keys to values.
 
 Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, provided the #hash of keys is well distributed.
 
 Iteration happens in insertion order. If the value associated with a key changes while the key is already in the map, the key's order does not change. Removing a key and adding it back will change the key's order to last.
 
-nil is a valid key and a valid value.
-*)
-	|
-	protected size_ <Integer>
-	protected deleted_ <Integer>
-        protected data_ <Array>
-        protected hashtable_slot <Array>
-	|
-	createTable: capacity.
-) (
-protected hashtable_ ^ <Array> = (
-    hashtable_slot isNil ifTrue: [hashtable_slot:: rehash].
-    ^hashtable_slot
-)
-public addAll: other = (
-	other keysAndValuesDo: [:key :value | self at: key put: value].
-)
-public at: key <K> ^ <V> = (
-	^self at: key ifAbsent: [(NotFound element: key) signal]
-)
-public at: key <K> ifAbsent: onAbsent <[X def]> ^ <K | X> = (
-	| bucketIndex |
-	bucketIndex:: scanFor: key.
-	bucketIndex < 0 ifTrue:
-		[^onAbsent value].
-	^data_ at: 1 + (hashtable_ at: bucketIndex)
-)
-public at: key <K> ifAbsentPut: valueGenerator <[V]> ^ <V> = (
-	| bucketIndex |
-	bucketIndex:: scanFor: key.
-	bucketIndex < 0 ifTrue:
-		[^insert: 0 - bucketIndex key: key value: valueGenerator value].
-	^data_ at: 1 + (hashtable_ at: bucketIndex)
-)
-public at: key <K> put: value <V> ^ <V> = (
-	| bucketIndex |
-	bucketIndex:: scanFor: key.
-	bucketIndex < 0 ifTrue:
-		[^insert: 0 - bucketIndex key: key value: value].
-	^data_ at: 1 + (hashtable_ at: bucketIndex) put: value
-)
-public collect: transform <[:V | W]> ^ <Map[K, W]> = (
-	|
-	result = Map new: size.
-	table = data_.
-	|
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 key:: table at: keyIndex.
-		 table = key ifFalse:
-			[result at: key put: (transform value: (table at: 1 + keyIndex))]].
-	^result
-)
-createTable: numElements <Integer> = (
-	| hashtable |
-	numElements < 0 ifTrue:
-		[^(ArgumentError value: numElements) signal].
-	size_:: 0.
-	deleted_:: 0.
-	data_:: Array new: numElements + 1 << 1.
-	hashtable:: Array new: numElements + 1 * 4 // 3.
-	1 to: hashtable size do: [:index | hashtable at: index put: 0].
-	hashtable_slot:: hashtable.
-)
-public do: action <[:V]> = (
-	| table = data_. |
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 key:: table at: keyIndex.
-		 table = key ifFalse:
-			[action value: (table at: 1 + keyIndex)]].
-)
-public includesKey: key <K> ^ <Boolean> = (
-	^(scanFor: key) > 0
-)
-insert: bucketIndex key: key value: value = (
-	| keyIndex |
-	keyIndex:: size_ + deleted_ << 1 + 1.
-	size_:: 1 + size_.
-	data_ at: keyIndex put: key.
-	data_ at: 1 + keyIndex put: value.
-	hashtable_ at: bucketIndex put: keyIndex.
-	keyIndex + 2 > data_ size ifTrue: [rehash].
-	^value
-)
-public isEmpty ^ <Boolean> = (
-	^0 = size
-)
-public isKindOfMap ^ <Boolean> = (
-	^true
-)
-public keys ^ <Array[V]> = (
-	|
-	result = Array new: size.
-	table = data_.
-	cursor ::= 0.
-	|
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 key:: table at: keyIndex.
-		 table = key ifFalse: [result at: (cursor:: 1 + cursor) put: key]].
-	^result
-)
-public keysAndValuesDo: action <[:K :V]> = (
-	| table = data_. |
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 key:: table at: keyIndex.
-		 table = key ifFalse:
-			[action value: key value: (table at: 1 + keyIndex)]].
-)
-rehash = (
-	| oldData oldLast newHashtable newData newKeyIndex |
-	oldData:: data_.
-	oldLast:: size_ + deleted_ << 1.
-
-	createTable: size_ << 1.
-	newHashtable:: hashtable_.
-	newData:: data_.
-	newKeyIndex:: 1.
-	1 to: oldLast by: 2 do:
-		[:oldKeyIndex | | key newBucketIndex |
-		 key:: oldData at: oldKeyIndex.
-		 oldData = key ifFalse:
-			[newBucketIndex:: scanForEmptySlotFor: key.
-			 newHashtable at: newBucketIndex put: newKeyIndex.
-			 newData at: newKeyIndex put: key.
-			 newData at: 1 + newKeyIndex put: (oldData at: 1 + oldKeyIndex).
-			 newKeyIndex:: 2 + newKeyIndex]].
-	size_:: newKeyIndex >> 1.
-	^newHashtable
-)
-public reject: predicate <[:V | Boolean]> ^ <Map[K, V]> = (
-	|
-	result = Map new: size.
-	table = data_.
-	|
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 table = (key:: table at: keyIndex) ifFalse:
-			[ | value = table at: 1 + keyIndex. |
-			 (predicate value: value) ifFalse:
-				[result at: key put: value]]].
-	^result
-)
-public removeAll = (
-	createTable: 3.
-)
-public removeKey: key <K> ^ <V> = (
-	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
-)
-public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^ <V | X> = (
-	| bucketIndex keyIndex oldValue |
-	bucketIndex:: scanFor: key.
-	bucketIndex < 0 ifTrue:
-		[^onAbsent value].
-
-	keyIndex:: hashtable_ at: bucketIndex.
-	hashtable_ at: bucketIndex put: -1 (* deleted *).
-	deleted_:: 1 + deleted_.
-	size_:: -1 + size_.
-
-	oldValue:: data_ at: 1 + keyIndex.
-	data_ at: 1 + keyIndex put: data_.
-	data_ at: keyIndex put: data_.
-	deleted_ > size_ ifTrue: [rehash].
-	^oldValue
-)
-scanFor: key <K> ^ <Integer> = (
-	| hashtable data bucketIndex start |
-	hashtable:: hashtable_.
-	data:: data_.
-	bucketIndex:: start:: key hash \\ hashtable size + 1.
-	[ | keyIndex = hashtable at: bucketIndex. |
-	 0 (* empty *) = keyIndex ifTrue: [^0 - bucketIndex].
-	 -1 (* deleted *) = keyIndex ifFalse:
-		[key = (data_ at: keyIndex) ifTrue:
-			[^bucketIndex]].
-	 (bucketIndex:: bucketIndex \\ hashtable size + 1) = start] whileFalse.
-	self errorNoFreeSpace.
-)
-scanForEmptySlotFor: key <K> ^ <Integer> = (
-	| hashtable bucketIndex start |
-	hashtable:: hashtable_.
-	bucketIndex:: start:: key hash \\ hashtable size + 1.
-	[0 = (hashtable at: bucketIndex) ifTrue: [^bucketIndex].
-	 (bucketIndex:: bucketIndex \\ hashtable size + 1) = start] whileFalse.
-	self errorNoFreeSpace.
-)
-public select: predicate <[:V | Boolean]> ^ <Map[K, V]> = (
-	|
-	result = Map new: size.
-	table = data_.
-	|
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex | | key |
-		 table = (key:: table at: keyIndex) ifFalse:
-			[ | value = table at: 1 + keyIndex. |
-			 (predicate value: value) ifTrue:
-				[result at: key put: value]]].
-	^result
-)
-public size ^ <Integer> = (
-	^size_
-)
-public values ^ <Array[V]> = (
-	|
-	result = Array new: size.
-	table = data_.
-	cursor ::= 0.
-	|
-	1 to: size_ + deleted_ << 1 by: 2 do:
-		[:keyIndex |
-		 table = (table at: keyIndex) ifFalse:
-			[result at: (cursor:: 1 + cursor) put: (table at: 1 + keyIndex)]].
-	^result
-)
-) : (
-public new ^ <Map[K, V]> = (
-	^self new: 3
-)
-public withAll: collection ^ <Map[K, V]> = (
-	^(self new: collection size) addAll: collection; yourself
-)
-)
-public class NotFound element: e = Exception (
-	|
-	public element = e.
-	|
-) (
-public printString = (
-	^'NotFound: ', element printString
-)
-) : (
-)
-public class Set[E] new: capacity <Integer> = Collection (
-  (* A collection of elements without duplicates.
+nil is a valid key and a valid value. *)
+		
+		|
+			size_ <Integer>
+			deleted_ <Integer>
+			data_ <Array>
+			hashtable_slot <Array>
+		|
+		createTable: capacity.
+	) (
+		hashtable_ ^<Array> = (
+			hashtable_slot isNil ifTrue: [ hashtable_slot:: rehash ].
+			^hashtable_slot
+		)
+		public addAll: other = (
+			other keysAndValuesDo: [:key :value | self at: key put: value ]
+		)
+		public at: key <K> ^<V> = (
+			^self at: key ifAbsent: [ (NotFound element: key) signal ]
+		)
+		public at: key <K> ifAbsent: onAbsent <[X def]> ^<K | X> = (
+			| bucketIndex |
+			bucketIndex:: scanFor: key.
+			bucketIndex < 0 ifTrue: [ ^onAbsent value ].
+			^data_ at: 1 + (hashtable_ at: bucketIndex)
+		)
+		public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
+			| bucketIndex |
+			bucketIndex:: scanFor: key.
+			bucketIndex < 0 ifTrue: [
+					^insert: 0 - bucketIndex key: key value: valueGenerator value
+				].
+			^data_ at: 1 + (hashtable_ at: bucketIndex)
+		)
+		public at: key <K> put: value <V> ^<V> = (
+			| bucketIndex |
+			bucketIndex:: scanFor: key.
+			bucketIndex < 0 ifTrue: [ ^insert: 0 - bucketIndex key: key value: value ].
+			^data_ at: 1 + (hashtable_ at: bucketIndex) put: value
+		)
+		public collect: transform <[:V | W]> ^<Map[K, W]> = (
+			| result = Map new: size. table = data_. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					key:: table at: keyIndex.
+					table = key ifFalse: [
+							result at: key put: (transform value: (table at: 1 + keyIndex))
+						]
+				].
+			^result
+		)
+		createTable: numElements <Integer> = (
+			| hashtable |
+			numElements < 0 ifTrue: [ ^(ArgumentError value: numElements) signal ].
+			size_:: 0.
+			deleted_:: 0.
+			data_:: Array new: numElements + 1 << 1.
+			hashtable:: Array new: numElements + 1 * 4 // 3.
+			1 to: hashtable size do: [:index | hashtable at: index put: 0 ].
+			hashtable_slot:: hashtable
+		)
+		public do: action <[:V | Object]> = (
+			| table = data_. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					key:: table at: keyIndex.
+					table = key ifFalse: [ action value: (table at: 1 + keyIndex) ]
+				]
+		)
+		public includesKey: key <K> ^<Boolean> = (
+			^(scanFor: key) > 0
+		)
+		insert: bucketIndex key: key value: value = (
+			| keyIndex |
+			keyIndex:: size_ + deleted_ << 1 + 1.
+			size_:: 1 + size_.
+			data_ at: keyIndex put: key.
+			data_ at: 1 + keyIndex put: value.
+			hashtable_ at: bucketIndex put: keyIndex.
+			keyIndex + 2 > data_ size ifTrue: [ rehash ].
+			^value
+		)
+		public isEmpty ^<Boolean> = (
+			^0 = size
+		)
+		public isKindOfMap ^<Boolean> = (
+			^true
+		)
+		public keys ^<Array[V]> = (
+			| result = Array new: size. table = data_. cursor ::= 0. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					key:: table at: keyIndex.
+					table = key ifFalse: [ result at: (cursor:: 1 + cursor) put: key ]
+				].
+			^result
+		)
+		public keysAndValuesDo: action <[:K :V | Object]> = (
+			| table = data_. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					key:: table at: keyIndex.
+					table = key ifFalse: [ action value: key value: (table at: 1 + keyIndex) ]
+				]
+		)
+		rehash = (
+			| oldData oldLast newHashtable newData newKeyIndex |
+			oldData:: data_.
+			oldLast:: size_ + deleted_ << 1.
+			createTable: size_ << 1.
+			newHashtable:: hashtable_.
+			newData:: data_.
+			newKeyIndex:: 1.
+			1 to: oldLast
+				by: 2
+				do: [:oldKeyIndex |
+					| key newBucketIndex |
+					key:: oldData at: oldKeyIndex.
+					oldData = key ifFalse: [
+							newBucketIndex:: scanForEmptySlotFor: key.
+							newHashtable at: newBucketIndex put: newKeyIndex.
+							newData at: newKeyIndex put: key.
+							newData at: 1 + newKeyIndex put: (oldData at: 1 + oldKeyIndex).
+							newKeyIndex:: 2 + newKeyIndex
+						]
+				].
+			size_:: newKeyIndex >> 1.
+			^newHashtable
+		)
+		public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+			| result = Map new: size. table = data_. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					table = (key:: table at: keyIndex) ifFalse: [
+							| value = table at: 1 + keyIndex. |
+							(predicate value: value) ifFalse: [ result at: key put: value ]
+						]
+				].
+			^result
+		)
+		public removeAll = (
+			createTable: 3
+		)
+		public removeKey: key <K> ^<V> = (
+			^self removeKey: key ifAbsent: [ (NotFound element: key) signal ]
+		)
+		public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
+			| bucketIndex keyIndex oldValue |
+			bucketIndex:: scanFor: key.
+			bucketIndex < 0 ifTrue: [ ^onAbsent value ].
+			keyIndex:: hashtable_ at: bucketIndex.
+			hashtable_ at: bucketIndex put: -1.
+			
+			(* deleted *)
+			deleted_:: 1 + deleted_.
+			size_:: -1 + size_.
+			oldValue:: data_ at: 1 + keyIndex.
+			data_ at: 1 + keyIndex put: data_.
+			data_ at: keyIndex put: data_.
+			deleted_ > size_ ifTrue: [ rehash ].
+			^oldValue
+		)
+		scanFor: key <K> ^<Integer> = (
+			| hashtable data bucketIndex start |
+			hashtable:: hashtable_.
+			data:: data_.
+			bucketIndex:: start:: key hash \\ hashtable size + 1.
+			[
+				| keyIndex = hashtable at: bucketIndex. |
+				0 = 
+				(* empty *)
+				keyIndex ifTrue: [ ^0 - bucketIndex ].
+				-1 = 
+				(* deleted *)
+				keyIndex ifFalse: [ key = (data_ at: keyIndex) ifTrue: [ ^bucketIndex ] ].
+				(bucketIndex:: bucketIndex \\ hashtable size + 1) = start
+			] whileFalse.
+			self errorNoFreeSpace
+		)
+		scanForEmptySlotFor: key <K> ^<Integer> = (
+			| hashtable bucketIndex start |
+			hashtable:: hashtable_.
+			bucketIndex:: start:: key hash \\ hashtable size + 1.
+			[
+				0 = (hashtable at: bucketIndex) ifTrue: [ ^bucketIndex ].
+				(bucketIndex:: bucketIndex \\ hashtable size + 1) = start
+			] whileFalse.
+			self errorNoFreeSpace
+		)
+		public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+			| result = Map new: size. table = data_. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					| key |
+					table = (key:: table at: keyIndex) ifFalse: [
+							| value = table at: 1 + keyIndex. |
+							(predicate value: value) ifTrue: [ result at: key put: value ]
+						]
+				].
+			^result
+		)
+		public size ^<Integer> = (
+			^size_
+		)
+		public values ^<Array[V]> = (
+			| result = Array new: size. table = data_. cursor ::= 0. |
+			1 to: size_ + deleted_ << 1
+				by: 2
+				do: [:keyIndex |
+					table = (table at: keyIndex) ifFalse: [
+							result at: (cursor:: 1 + cursor) put: (table at: 1 + keyIndex)
+						]
+				].
+			^result
+		)
+	) : (
+		public new ^<Map[K, V]> = (
+			^self new: 3
+		)
+		public withAll: collection ^<Map[K, V]> = (
+			^(self new: collection size) addAll: collection;
+				yourself
+		)
+	)
+	public class NotFound element: e = Exception new (
+		|
+			public element = e.
+		|
+	) (
+		public printString = (
+			^'NotFound: ' , element printString
+		)
+	) : ()
+	public class Set[E] new: capacity <Integer> = Collection new (
+		(* A collection of elements without duplicates.
 
 Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
 
 Iteration happens in insertion order. If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last.
 
 nil is a valid element. *)
-	|
-	protected size_ <Integer>
-	protected deleted_ <Integer>
-        protected data_ <Array>
-        protected hashtable_slot <Array>
-	|
-	createTable: capacity.
-) (
-protected hashtable_ ^ <Array> = (
-    hashtable_slot isNil ifTrue: [hashtable_slot:: rehash].
-    ^hashtable_slot
-)
-public add: element <E> ^ <E> = (
-	| index |
-	index:: scanFor: element.
-	index < 0 ifTrue:
-		[^insert: 0 - index element: element].
-	^data_ at: (hashtable_ at: index) put: element
-)
-public addAll: collection <Collection[E]> = (
-	collection do: [:element | self add: element].
-)
-public asArray ^ <Array[E]> = (
-	|
-	result = Array new: size.
-	table = data_.
-	cursor ::= 1.
-	|
-	1 to: size_ + deleted_ do:
-		[:keyIndex | | entry |
-		 entry:: table at: keyIndex.
-		 table = entry ifFalse:
-			[result at: cursor put: entry.
-			 cursor:: 1 + cursor]].
-	^result
-)
-createTable: numElements <Integer> = (
-	| hashtable |
-	numElements < 0 ifTrue:
-		[^(ArgumentError value: numElements) signal].
-	size_:: 0.
-	deleted_:: 0.
-	data_:: Array new: numElements + 1.
-	hashtable:: Array new: numElements + 1 * 4 // 3.
-	1 to: hashtable size do: [:index | hashtable at: index put: 0].
-	hashtable_slot:: hashtable.
-)
-public do: action <[:E]> = (
-	| table = data_. |
-	1 to: size_ + deleted_ do:
-		[:keyIndex | | element |
-		 element:: table at: keyIndex.
-		 table = element ifFalse:
-			[action value: element]].
-)
-public include: element <E> ifNew: onNew <[]> ^<E> = (
-	| bucketIndex keyIndex |
-	bucketIndex:: scanFor: element.
-	bucketIndex < 0 ifTrue:
-		[insert: 0 - bucketIndex element: element.
-		 onNew value].
-	^element
-)
-public includes: element <E> ^ <Boolean> = (
-	^(scanFor: element) > 0
-)
-insert: bucketIndex element: element = (
-	| keyIndex |
-	keyIndex:: size_ + deleted_ + 1.
-	size_:: 1 + size_.
-	data_ at: keyIndex put: element.
-	hashtable_ at: bucketIndex put: keyIndex.
-	keyIndex + 1 > data_ size ifTrue: [rehash].
-	^element
-)
-public isEmpty ^ <Boolean> = (
-	^0 = size
-)
-public isKindOfSet ^ <Boolean> = (
-	^true
-)
-protected newForCollectUsingAdd: capacity = (
-	^Set new: capacity
-)
-rehash = (
-	| oldData oldLast newHashtable newData newKeyIndex |
-	oldData:: data_.
-	oldLast:: size_ + deleted_.
-
-	createTable: size_ << 1.
-	newHashtable:: hashtable_.
-	newData:: data_.
-	newKeyIndex:: 1.
-	1 to: oldLast do:
-		[:oldKeyIndex | | key newBucketIndex |
-		 key:: oldData at: oldKeyIndex.
-		 oldData = key ifFalse:
-			[newBucketIndex:: scanForEmptySlotFor: key.
-			 newHashtable at: newBucketIndex put: newKeyIndex.
-			 newData at: newKeyIndex put: key.
-			 newKeyIndex:: 1 + newKeyIndex]].
-	size_:: newKeyIndex - 1.
-	^newHashtable
-)
-public remove: element <E> ^ <E> = (
-	^self remove: element ifAbsent: [(NotFound element: element) signal].
-)
-public remove: element <E> ifAbsent: onAbsent <[X def]> ^ <E | X> = (
-	| bucketIndex keyIndex oldElement |
-	bucketIndex:: scanFor: element.
-	bucketIndex < 0 ifTrue:
-		[^onAbsent value].
-
-	keyIndex:: hashtable_ at: bucketIndex.
-	hashtable_ at: bucketIndex put: -1 (* deleted *).
-	deleted_:: 1 + deleted_.
-	size_:: -1 + size_.
-
-	oldElement:: data_ at: keyIndex.
-	data_ at: keyIndex put: data_.
-	deleted_ > size_ ifTrue: [rehash].
-	^oldElement
-)
-public removeAll = (
-	createTable: 3.
-)
-public removeAll: collection <Collection[E]> = (
-	collection do: [:element | self remove: element].
-)
-public removeAllSuchThat: predicate <[:E | Boolean]> = (
-	asArray do:
-		[:element | (predicate value: element) ifTrue:
-			[self remove: element]].
-)
-scanFor: key <E> ^ <Integer> = (
-	| hashtable data bucketIndex start |
-	hashtable:: hashtable_.
-	data:: data_.
-	bucketIndex:: start:: key hash \\ hashtable size + 1.
-	[ | keyIndex = hashtable at: bucketIndex. |
-	 0 (* empty *) = keyIndex ifTrue: [^0 - bucketIndex].
-	 -1 (* deleted *) = keyIndex ifFalse:
-		[key = (data at: keyIndex) ifTrue:
-			[^bucketIndex]].
-	 (bucketIndex:: bucketIndex \\ hashtable size + 1) = start] whileFalse.
-	self errorNoFreeSpace.
-)
-scanForEmptySlotFor: key <E> ^ <Integer> = (
-	| hashtable bucketIndex start |
-	hashtable:: hashtable_.
-	bucketIndex:: start:: key hash \\ hashtable size + 1.
-	[0 = (hashtable at: bucketIndex) ifTrue: [^bucketIndex].
-	 (bucketIndex:: bucketIndex \\ hashtable size + 1) = start] whileFalse.
-	self errorNoFreeSpace.
-)
-public size ^ <Integer> = (
-	^size_
-)
-) : (
-public new ^ <Set[E]> = (
-	^self new: 3
-)
-public withAll: collection <Collection[E]> ^ <Set[E]> = (
-	^(self new: collection size) addAll: collection; yourself
-)
-)
-public IdentityMap = (
-	^Map
-)
-public IdentitySet = (
-	^Set
-)
-) : (
-)
+		
+		|
+			size_ <Integer>
+			deleted_ <Integer>
+			data_ <Array>
+			hashtable_slot <Array>
+		|
+		createTable: capacity.
+	) (
+		hashtable_ ^<Array> = (
+			hashtable_slot isNil ifTrue: [ hashtable_slot:: rehash ].
+			^hashtable_slot
+		)
+		public add: element <E> ^<E> = (
+			| index |
+			index:: scanFor: element.
+			index < 0 ifTrue: [ ^insert: 0 - index element: element ].
+			^data_ at: (hashtable_ at: index) put: element
+		)
+		public addAll: collection <Collection[E]> = (
+			collection do: [:element | self add: element ]
+		)
+		public asArray ^<Array[E]> = (
+			| result = Array new: size. table = data_. cursor ::= 1. |
+			1 to: size_ + deleted_
+				do: [:keyIndex |
+					| entry |
+					entry:: table at: keyIndex.
+					table = entry ifFalse: [
+							result at: cursor put: entry.
+							cursor:: 1 + cursor
+						]
+				].
+			^result
+		)
+		createTable: numElements <Integer> = (
+			| hashtable |
+			numElements < 0 ifTrue: [ ^(ArgumentError value: numElements) signal ].
+			size_:: 0.
+			deleted_:: 0.
+			data_:: Array new: numElements + 1.
+			hashtable:: Array new: numElements + 1 * 4 // 3.
+			1 to: hashtable size do: [:index | hashtable at: index put: 0 ].
+			hashtable_slot:: hashtable
+		)
+		public do: action <[:E | Object]> = (
+			| table = data_. |
+			1 to: size_ + deleted_
+				do: [:keyIndex |
+					| element |
+					element:: table at: keyIndex.
+					table = element ifFalse: [ action value: element ]
+				]
+		)
+		public include: element <E> ifNew: onNew <[]> ^<E> = (
+			| bucketIndex keyIndex |
+			bucketIndex:: scanFor: element.
+			bucketIndex < 0 ifTrue: [
+					insert: 0 - bucketIndex element: element.
+					onNew value
+				].
+			^element
+		)
+		public includes: element <E> ^<Boolean> = (
+			^(scanFor: element) > 0
+		)
+		insert: bucketIndex element: element = (
+			| keyIndex |
+			keyIndex:: size_ + deleted_ + 1.
+			size_:: 1 + size_.
+			data_ at: keyIndex put: element.
+			hashtable_ at: bucketIndex put: keyIndex.
+			keyIndex + 1 > data_ size ifTrue: [ rehash ].
+			^element
+		)
+		public isEmpty ^<Boolean> = (
+			^0 = size
+		)
+		public isKindOfSet ^<Boolean> = (
+			^true
+		)
+		newForCollectUsingAdd: capacity = (
+			^Set new: capacity
+		)
+		rehash = (
+			| oldData oldLast newHashtable newData newKeyIndex |
+			oldData:: data_.
+			oldLast:: size_ + deleted_.
+			createTable: size_ << 1.
+			newHashtable:: hashtable_.
+			newData:: data_.
+			newKeyIndex:: 1.
+			1 to: oldLast
+				do: [:oldKeyIndex |
+					| key newBucketIndex |
+					key:: oldData at: oldKeyIndex.
+					oldData = key ifFalse: [
+							newBucketIndex:: scanForEmptySlotFor: key.
+							newHashtable at: newBucketIndex put: newKeyIndex.
+							newData at: newKeyIndex put: key.
+							newKeyIndex:: 1 + newKeyIndex
+						]
+				].
+			size_:: newKeyIndex - 1.
+			^newHashtable
+		)
+		public remove: element <E> ^<E> = (
+			^self remove: element ifAbsent: [ (NotFound element: element) signal ]
+		)
+		public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
+			| bucketIndex keyIndex oldElement |
+			bucketIndex:: scanFor: element.
+			bucketIndex < 0 ifTrue: [ ^onAbsent value ].
+			keyIndex:: hashtable_ at: bucketIndex.
+			hashtable_ at: bucketIndex put: -1.
+			
+			(* deleted *)
+			deleted_:: 1 + deleted_.
+			size_:: -1 + size_.
+			oldElement:: data_ at: keyIndex.
+			data_ at: keyIndex put: data_.
+			deleted_ > size_ ifTrue: [ rehash ].
+			^oldElement
+		)
+		public removeAll = (
+			createTable: 3
+		)
+		public removeAll: collection <Collection[E]> = (
+			collection do: [:element | self remove: element ]
+		)
+		public removeAllSuchThat: predicate <[:E | Boolean]> = (
+			asArray do: [:element |
+					(predicate value: element) ifTrue: [ self remove: element ]
+				]
+		)
+		scanFor: key <E> ^<Integer> = (
+			| hashtable data bucketIndex start |
+			hashtable:: hashtable_.
+			data:: data_.
+			bucketIndex:: start:: key hash \\ hashtable size + 1.
+			[
+				| keyIndex = hashtable at: bucketIndex. |
+				0 = 
+				(* empty *)
+				keyIndex ifTrue: [ ^0 - bucketIndex ].
+				-1 = 
+				(* deleted *)
+				keyIndex ifFalse: [ key = (data at: keyIndex) ifTrue: [ ^bucketIndex ] ].
+				(bucketIndex:: bucketIndex \\ hashtable size + 1) = start
+			] whileFalse.
+			self errorNoFreeSpace
+		)
+		scanForEmptySlotFor: key <E> ^<Integer> = (
+			| hashtable bucketIndex start |
+			hashtable:: hashtable_.
+			bucketIndex:: start:: key hash \\ hashtable size + 1.
+			[
+				0 = (hashtable at: bucketIndex) ifTrue: [ ^bucketIndex ].
+				(bucketIndex:: bucketIndex \\ hashtable size + 1) = start
+			] whileFalse.
+			self errorNoFreeSpace
+		)
+		public size ^<Integer> = (
+			^size_
+		)
+	) : (
+		public new ^<Set[E]> = (
+			^self new: 3
+		)
+		public withAll: collection <Collection[E]> ^<Set[E]> = (
+			^(self new: collection size) addAll: collection;
+				yourself
+		)
+	)
+	public IdentityMap = (
+		^Map
+	)
+	public IdentitySet = (
+		^Set
+	)
+) : ()
