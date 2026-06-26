@@ -1205,13 +1205,9 @@ public parseBlockArgType = (
 )
 public parseTypeParametersOpt = (
 	(* Returns {names <List[Symbol]>. bounds <List[TypeAST | Nil]>} with bounds parallel to
-	   names (nil where no `<: Bound` was given). Accepts both the new bracket form [E <: B]
-	   and the legacy <[E …]> form. *)
-	| params = List new. bounds = List new. angleForm |
-	angleForm:: (tokenKind = #binary and: [tokenValue = '<']).
-	angleForm
-		ifTrue: [advanceToken. tokenKind = #'[' ifFalse: [expected: '[']]
-		ifFalse: [tokenKind = #'[' ifFalse: [^{params. bounds}]].
+	   names (nil where no `<: Bound` was given). Bracket form [E <: B]. *)
+	| params = List new. bounds = List new. |
+	tokenKind = #'[' ifFalse: [^{params. bounds}].
 	advanceToken.
 	parseOneTypeParameterInto: params bounds: bounds.
 	[tokenKind = #binary and: [tokenValue = ',']] whileTrue: [
@@ -1220,13 +1216,7 @@ public parseTypeParametersOpt = (
 	].
 	tokenKind = #']' ifFalse: [expected: ']'].
 	advanceToken.
-	angleForm ifFalse: [^{params. bounds}].
-	(* Legacy form closes with '>' (handle '>=' as parseType does). *)
-	tokenKind = #binary ifTrue: [
-		tokenValue = '>' ifTrue: [advanceToken. ^{params. bounds}].
-		tokenValue = '>=' ifTrue: [tokenValue:: '='. ^{params. bounds}].
-	].
-	expected: '>'.
+	^{params. bounds}
 )
 parseOneTypeParameterInto: params <List[Symbol]> bounds: bounds <List> = (
 	(* One type parameter: identifier, optional `<: TypeExpr` upper bound. *)

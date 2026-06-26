@@ -2307,7 +2307,7 @@ private maybeGrow = (
 )
 ) : (
 )
-public class _Array <[E]> _cannotInstantiate = Collection () (
+public class _Array[E] _cannotInstantiate = Collection () (
 public , collection = (
 	|
 	newArray = Array new: self size + collection size.
