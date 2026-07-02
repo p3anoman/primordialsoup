@@ -197,6 +197,9 @@ Expat mappings:
 				].
 			rawPushExpat: expatIndex
 		)
+		public isKindOfDOMNode ^<Boolean> = (
+			^instanceOf: (global at: #Node)
+		)
 	) : ()
 	public alienTableSize = (
 		(* :literalmessage: primitive: 158 *)
