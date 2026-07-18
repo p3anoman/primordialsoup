@@ -30,15 +30,25 @@ Licensed under the Apache License, Version 2.0 (the ''License''); you may not us
 				elapsed < milliseconds
 			] whileTrue.
 			score:: (round: runs * 1000 asFloat / elapsed to: 0.1 asFloat) asFloat.
-			^score printString
+			^score
+		)
+		median: a with: b with: c = (
+			| lo hi |
+			lo:: (a min: b) min: c.
+			hi:: (a max: b) max: c.
+			^a + b + c - lo - hi
 		)
 		public report = (
+			(* Long windows, median of three: the old 3ms warmup + single 20ms window measured JIT warmup as much as steady state (JS scores swung 40 percent between runs while V8 was still tiering), and a single window is at the mercy of one badly-placed GC. Scores under this harness are NOT comparable to pre-2026-07-17 numbers. *)
 			benchmarks do: [:benchmark |
-					| b score |
+					| b s1 s2 s3 score |
 					b:: benchmark usingPlatform: cachedPlatform.
-					self measure: [ b bench ] forAtLeast: 3.
-					score:: measure: [ b bench ] forAtLeast: 20.
-					(benchmark name , ': ' , score) out
+					self measure: [ b bench ] forAtLeast: 500.
+					s1:: measure: [ b bench ] forAtLeast: 1000.
+					s2:: measure: [ b bench ] forAtLeast: 1000.
+					s3:: measure: [ b bench ] forAtLeast: 1000.
+					score:: median: s1 with: s2 with: s3.
+					(benchmark name , ': ' , score printString) out
 				]
 		)
 		round: n to: quantum = (
